@@ -1,0 +1,106 @@
+---
+/**
+ * LoginForm.astro
+ * Role-aware authentication form reused by buyer and seller pages.
+ * Handles client-side submission to the `/api/login` endpoint and surfaces success or error messages inline.
+ */
+
+interface Props {
+	role: 'buyer' | 'seller';
+}
+
+const { role } = Astro.props;
+const roleLabel = role === 'buyer' ? 'Buyer' : 'Seller';
+const formId = `${role}-login-form`;
+const messageId = `${role}-login-message`;
+---
+
+<section aria-labelledby={`${role}-login-heading`}>
+	<h2 id={`${role}-login-heading`}>{roleLabel} sign in</h2>
+	<p class="notice">
+		Enter your email and password to access personalized pantry insights and marketplace tools.
+	</p>
+	<form id={formId} class="form-grid" data-role={role} novalidate>
+		<label>
+			<span>Email</span>
+			<input type="email" name="email" placeholder="you@example.com" autocomplete="username" required />
+		</label>
+		<label>
+			<span>Password</span>
+			<input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+		</label>
+		<input type="hidden" name="role" value={role} />
+		<div class="actions">
+			<slot name="submit" />
+		</div>
+	</form>
+	<p id={messageId} class="status-message" role="status" aria-live="polite"></p>
+</section>
+
+<script is:inline>
+	(() => {
+		const script = document.currentScript;
+		const section = script?.previousElementSibling;
+		if (!(section instanceof HTMLElement)) return;
+		const form = section.querySelector('form');
+		const message = section.querySelector('.status-message');
+		const submitButton = section.querySelector('button[type="submit"], [type="submit"]');
+		if (!(form instanceof HTMLFormElement) || !(message instanceof HTMLElement)) return;
+
+		message.dataset.status = message.dataset.status ?? 'info';
+
+		const setStatus = (text, status) => {
+			message.textContent = text;
+			message.dataset.status = status;
+		};
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+
+			const formData = new FormData(form);
+			const email = String(formData.get('email') ?? '').trim();
+			const password = String(formData.get('password') ?? '');
+			const userRole = String(formData.get('role') ?? 'buyer');
+
+			if (!email || !password) {
+				setStatus('Enter both your email and password to continue.', 'error');
+				return;
+			}
+
+			if (submitButton instanceof HTMLButtonElement) {
+				submitButton.disabled = true;
+				submitButton.dataset.loading = 'true';
+			}
+
+			setStatus('Signing in…', 'pending');
+
+			try {
+				const response = await fetch('/api/login', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json',
+						accept: 'application/json',
+					},
+					body: JSON.stringify({ email, password, role: userRole }),
+				});
+
+				const result = await response.json().catch(() => ({}));
+
+				if (response.ok) {
+					setStatus(result.message ?? 'Signed in successfully.', 'success');
+					form.reset();
+				} else {
+					setStatus(result.error ?? 'Unable to sign in. Please try again.', 'error');
+				}
+			} catch (error) {
+				console.error(error);
+				setStatus('Network error — check your connection and retry.', 'error');
+			} finally {
+				if (submitButton instanceof HTMLButtonElement) {
+					submitButton.disabled = false;
+					delete submitButton.dataset.loading;
+				}
+			}
+		});
+	})();
+</script>

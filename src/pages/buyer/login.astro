@@ -1,0 +1,30 @@
+---
+/**
+ * Buyer login page
+ * Presents the shared login form configured for buyer accounts along with onboarding copy for first-time users.
+ */
+
+import MainLayout from '../../layouts/MainLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import LoginForm from '../../components/forms/LoginForm.astro';
+---
+
+<MainLayout title="Buyer sign in — Wakefern Marketplace">
+	<section>
+		<h1>Welcome back, smart shopper</h1>
+		<p>
+			Sign in to sync your pantry, generate event shopping lists, and see personalized recommendations that keep food fresh
+			and budgets on track.
+		</p>
+		<LoginForm role="buyer">
+			<Button slot="submit" type="submit">Sign in as buyer</Button>
+		</LoginForm>
+	</section>
+	<section>
+		<h2>First time here?</h2>
+		<p>
+			Use the same form to create a buyer account — we will set you up with starter pantry items and demo data on your
+			first login.
+		</p>
+	</section>
+</MainLayout>

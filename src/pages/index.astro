@@ -1,16 +1,46 @@
----
 
 ---
+/**
+ * Landing page overview for Wakefern Marketplace.
+ * Highlights buyer and seller journeys and links to their respective login experiences.
+ */
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+import MainLayout from '../layouts/MainLayout.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<MainLayout title="Wakefern Marketplace — connect buyers and sellers">
+	<section>
+		<h1>Plan smarter. Waste less. Sell with confidence.</h1>
+		<p>
+			Wakefern Marketplace synchronizes household pantry data with local seller forecasts so food gets used at peak freshness
+			and stores hit their revenue targets with less spoilage.
+		</p>
+		<div class="actions">
+			<Button href="/buyer/login">Buyer portal</Button>
+			<Button href="/seller/login" variant="secondary">Seller dashboard</Button>
+		</div>
+	</section>
+	<section>
+		<h2>Buyers</h2>
+		<p>
+			Track what you own, auto-build shopping lists for upcoming events, and receive timely alerts before ingredients expire.
+		</p>
+		<ul>
+			<li>Unified pantry inventory with expiry insights.</li>
+			<li>Event planning that reuses items already on hand.</li>
+			<li>Marketplace suggestions tailored to your household.</li>
+		</ul>
+	</section>
+	<section>
+		<h2>Sellers</h2>
+		<p>
+			See demand spikes before they hit, optimize restocks, and launch promotions that match local shopper intent.
+		</p>
+		<ul>
+			<li>Zip-level demand forecasts derived from buyer plans.</li>
+			<li>Spoilage risk alerts to protect perishable inventory.</li>
+			<li>Promotion tools to capture emerging trends.</li>
+		</ul>
+	</section>
+</MainLayout>

@@ -164,12 +164,16 @@ This README is a living product specification: expand it with UI wireframes, sam
 
 --
 
-Quick start notes (how to initialize Astro and run the frontend dev server):
+Quick start notes (single Astro workspace):
 
-- From repo root run (assuming Node, npm, and Astro are installed):
+- From repo root run (assuming Node ≥18 and npm are installed):
 
-	1. cd apps/www
-	2. npm install
-	3. npm run dev
+	1. npm install
+	2. npm run dev
 
-The above will start the Astro dev server for the frontend. Backend services are scaffolded under `apps/api` and require their own dependencies and environment variables to run.
+These commands launch the Astro dev server with both UI pages and the `/api/login` endpoint.
+
+Demo credentials for the prototype routes:
+
+- Buyer — `buyer@example.com` / `buyer123`
+- Seller — `seller@example.com` / `seller123`

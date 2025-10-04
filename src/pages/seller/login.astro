@@ -1,0 +1,30 @@
+---
+/**
+ * Seller login page
+ * Reuses the shared login form for sellers and explains the insights available after authentication.
+ */
+
+import MainLayout from '../../layouts/MainLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import LoginForm from '../../components/forms/LoginForm.astro';
+---
+
+<MainLayout title="Seller sign in — Wakefern Marketplace">
+	<section>
+		<h1>Seller demand cockpit</h1>
+		<p>
+			Log in to review near-term demand signals, spoilage risk alerts, and recommended store promotions tailored to Wakefern
+			buyers in your area.
+		</p>
+		<LoginForm role="seller">
+			<Button slot="submit" type="submit">Sign in as seller</Button>
+		</LoginForm>
+	</section>
+	<section>
+		<h2>Need an account?</h2>
+		<p>
+			Reach out to the marketplace team at <a href="mailto:partners@wakefern.local">partners@wakefern.local</a> to onboard
+			your store and activate real-time forecasting feeds.
+		</p>
+	</section>
+</MainLayout>
