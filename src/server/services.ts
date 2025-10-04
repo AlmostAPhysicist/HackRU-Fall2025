@@ -5,6 +5,7 @@
 
 import type { LoginPayload, SignupPayload } from './types';
 import { createUser, findUserByEmail } from './models';
+import { ensureBuyerProfileForUser, ensureSellerProfileForUser } from './dashboard-service';
 
 interface AuthSuccess {
 	ok: true;
@@ -41,6 +42,12 @@ export async function authenticateUser(payload: LoginPayload): Promise<AuthSucce
 		return { ok: false, error: 'Incorrect login credentials.' };
 	}
 
+	if (user.role === 'buyer') {
+		await ensureBuyerProfileForUser(user.id, user.displayName);
+	} else {
+		await ensureSellerProfileForUser(user.id, user.displayName);
+	}
+
 	return {
 		ok: true,
 		user: {
@@ -71,6 +78,12 @@ export async function registerUser(payload: SignupPayload): Promise<AuthSuccess 
 	}
 
 	const user = await createUser(email, password, role, displayName);
+
+	if (user.role === 'buyer') {
+		await ensureBuyerProfileForUser(user.id, user.displayName);
+	} else {
+		await ensureSellerProfileForUser(user.id, user.displayName);
+	}
 
 	return {
 		ok: true,

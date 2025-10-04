@@ -1,0 +1,57 @@
+{
+  "kpis": {
+    "revenueWeek": 24875,
+    "revenueChangePct": 12.4,
+    "sellThroughRate": 0.87,
+    "spoilageAvoidedLb": 126,
+    "promotionLiftPct": 18.2
+  },
+  "demandAlerts": [
+    {
+      "zip": "07030",
+      "timeWindow": "Nov 18 - Nov 27",
+      "focusItems": ["sweet potatoes", "cranberries", "pumpkin pie kit"],
+      "confidence": 0.78,
+      "recommendedAction": "Pre-order +15% inventory by Nov 15"
+    },
+    {
+      "zip": "07302",
+      "timeWindow": "Dec 05 - Dec 15",
+      "focusItems": ["cranberry sparkling juice", "herbs bundle"],
+      "confidence": 0.66,
+      "recommendedAction": "Plan bundled promotion for holiday brunch shoppers"
+    }
+  ],
+  "inventoryRisks": [
+    {
+      "sku": "sku-004",
+      "name": "Farmhouse Herbs Bundle",
+      "currentStock": 120,
+      "daysOnHand": 6,
+      "risk": "High spoilage risk",
+      "suggestion": "Launch 2-day BOGO promo"
+    },
+    {
+      "sku": "sku-006",
+      "name": "Cranberry Sparkling Juice",
+      "currentStock": 48,
+      "daysOnHand": 19,
+      "risk": "Moderate",
+      "suggestion": "Feature in Friendsgiving bundles"
+    }
+  ],
+  "promotionIdeas": [
+    {
+      "name": "Friendsgiving Starter Bundle",
+      "components": ["sweet potatoes", "cranberries", "herbs bundle"],
+      "discount": "Save 12%",
+      "audience": "Buyers hosting events 11/20-11/30"
+    },
+    {
+      "name": "Holiday Brunch Sparkler",
+      "components": ["cranberry sparkling juice", "pumpkin pie kit"],
+      "discount": "BOGO 50%",
+      "audience": "07030 + 07302 weekend planners"
+    }
+  ]
+}

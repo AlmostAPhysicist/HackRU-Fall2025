@@ -1,0 +1,680 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import { buildBuyerDashboard } from "../../server/dashboard-service";
+import type { BuyerDashboardData } from "../../server/types";
+
+export const prerender = false;
+
+const userId = Astro.url.searchParams.get("user") ?? "";
+const dashboard: BuyerDashboardData | null = userId ? await buildBuyerDashboard(userId) : null;
+const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboard` : "Buyer Dashboard";
+---
+
+<MainLayout title={pageTitle}>
+  <section class="page-intro">
+    <h1>{dashboard ? `Hi ${dashboard.profile.displayName}, here’s your marketplace pulse` : "Buyer dashboard"}</h1>
+    <p class="lead">
+      {dashboard
+        ? dashboard.ai.summary
+        : "Sign in to unlock personalized pantry insights, marketplace bundles, and AI-powered meal plans."}
+    </p>
+  </section>
+
+  {!userId ? (
+    <section class="empty">
+      <h2>Sign in required</h2>
+      <p>
+        We couldn’t find your session. Please <a href="/buyer/login">sign in</a> to see your personalized dashboard.
+      </p>
+    </section>
+  ) : !dashboard ? (
+    <section class="empty">
+      <h2>No data yet</h2>
+      <p>Update your inventory information to get more insights and recommendations.</p>
+      <p class="actions">
+        <a class="button button--primary" href="/buyer/login">Refresh session</a>
+      </p>
+    </section>
+  ) : (
+    <>
+      <section class="kpi-grid">
+        <article>
+          <h2>Waste risk</h2>
+          <p class="kpi-value">
+            {dashboard.metrics.wasteRisk}
+            <span class="unit">%</span>
+          </p>
+          <p class="kpi-sub">Lower is better. Keep an eye on expiring items.</p>
+        </article>
+        <article>
+          <h2>Pantry health</h2>
+          <p class="kpi-value">
+            {dashboard.metrics.pantryHealth}
+            <span class="unit">%</span>
+          </p>
+          <p class="kpi-sub">Balance of stocked vs. low inventory.</p>
+        </article>
+        <article>
+          <h2>Budget health</h2>
+          <p class="kpi-value">
+            {dashboard.metrics.budgetHealth}
+            <span class="unit">%</span>
+          </p>
+          <p class="kpi-sub">Weekly spend vs. your ${dashboard.profile.budgetPerWeek} budget.</p>
+        </article>
+        <article>
+          <h2>Event readiness</h2>
+          <p class="kpi-value">
+            {dashboard.metrics.eventReadiness}
+            <span class="unit">%</span>
+          </p>
+          <p class="kpi-sub">Status across {dashboard.profile.events.length} upcoming plans.</p>
+        </article>
+      </section>
+
+      <section class="actions-panel">
+        <header>
+          <h2>AI game plan</h2>
+          <p>Powered by pantry, purchasing, and nearby offers.</p>
+        </header>
+        <ul>
+          {dashboard.ai.recommendedActions.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="inventory">
+        <header>
+          <h2>Pantry snapshot</h2>
+          <p>
+            {dashboard.emptyInventory
+              ? "Update your inventory information to get more insights and recommendations."
+              : `Tracking ${dashboard.profile.inventory.length} items across ${new Set(
+                  dashboard.profile.inventory.map((item) => item.category)
+                ).size} categories.`}
+          </p>
+        </header>
+        {dashboard.emptyInventory ? (
+          <div class="empty-state">
+            <p>No items logged yet. Try adding what’s in your fridge or pantry below.</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Status</th>
+                <th>Quantity</th>
+                <th>Expires</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dashboard.profile.inventory.map((item) => (
+                <tr class={`status-${item.status}`}>
+                  <td data-label="Item">{item.name}</td>
+                  <td class="status" data-label="Status">{item.status.replace("-", " ")}</td>
+                  <td data-label="Quantity">
+                    {item.quantity} {item.unit}
+                  </td>
+                  <td data-label="Expires">{item.expirationDate ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <form class="add-form" id="inventory-form">
+          <h3>Add pantry item</h3>
+          <input type="hidden" name="userId" value={dashboard.profile.userId} />
+          <div class="form-grid">
+            <label>
+              <span>Item</span>
+              <input type="text" name="name" placeholder="Sweet potatoes" required />
+            </label>
+            <label>
+              <span>Quantity</span>
+              <input type="number" step="0.1" min="0" name="quantity" placeholder="2" required />
+            </label>
+            <label>
+              <span>Unit</span>
+              <input type="text" name="unit" placeholder="lb" required />
+            </label>
+            <label>
+              <span>Category</span>
+              <input type="text" name="category" placeholder="Produce" />
+            </label>
+            <label>
+              <span>Expiration date</span>
+              <input type="date" name="expirationDate" />
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit" class="button button--primary">Save to pantry</button>
+            <span class="status-message" data-status="info" id="inventory-status">
+              Track new ingredients to unlock smarter plans.
+            </span>
+          </div>
+        </form>
+      </section>
+
+      <section class="meal-plan">
+        <header>
+          <h2>3-day meal lineup</h2>
+          <p>Tailored to your inventory and dietary preferences.</p>
+        </header>
+        <div class="plan-grid">
+          {dashboard.ai.mealPlan.map((day) => (
+            <article>
+              <h3>{day.day}</h3>
+              <ul>
+                {day.meals.map((meal) => (
+                  <li>{meal}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="diet-schedule">
+        <header>
+          <h2>Daily wellness cadence</h2>
+          <p>Small shifts to stay aligned with your goals.</p>
+        </header>
+        <ul>
+          {dashboard.ai.dietSchedule.map((entry) => (
+            <li>
+              <strong>{entry.day}</strong>
+              <span>{entry.focus}</span>
+              <p>{entry.tip}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="events">
+        <header>
+          <h2>Upcoming events</h2>
+          <p>Coordinate shopping lists and headcounts.</p>
+        </header>
+        <ul>
+          {dashboard.profile.events.map((event) => (
+            <li>
+              <div class="event-head">
+                <strong>{event.name}</strong>
+                <span>{new Date(event.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                <span>{event.headcount} guests</span>
+                <span class={`badge badge-${event.status}`}>{event.status.replace("-", " ")}</span>
+              </div>
+              <div class="event-body">
+                <p>Menu: {event.menu.join(", ")}</p>
+                <ul class="shopping">
+                  {event.shoppingList.map((item) => (
+                    <li class={`status-${item.status}`}>
+                      <span>{item.name}</span>
+                      <small>
+                        {item.quantity} {item.unit}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {dashboard.shoppingFocus.length > 0 && (
+          <div class="focus-callout">
+            <h3>Smart shopping focus</h3>
+            <ul>
+              {dashboard.shoppingFocus.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+  <section class="offers">
+        <header>
+          <h2>Nearby marketplace offers</h2>
+          <p>Bundles and markdowns near {dashboard.profile.zip}.</p>
+        </header>
+        <ul>
+          {dashboard.offers.length === 0 ? (
+            <li>No local offers detected. Check back soon!</li>
+          ) : (
+            <>
+              {dashboard.offers.map((offer) => (
+                <li>
+                  <strong>{offer.storeName}</strong>
+                  <span>{offer.description}</span>
+                  <small>Valid through {offer.validThrough}</small>
+                </li>
+              ))}
+              {dashboard.ai.dealHighlights.map((highlight) => (
+                <li class="highlight">{highlight}</li>
+              ))}
+            </>
+          )}
+        </ul>
+      </section>
+    </>
+  )}
+
+  <script is:inline>
+    (() => {
+      const form = document.getElementById("inventory-form");
+      const status = document.getElementById("inventory-status");
+      if (!(form instanceof HTMLFormElement) || !(status instanceof HTMLElement)) return;
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit instanceof HTMLButtonElement) {
+          submit.disabled = true;
+          submit.dataset.loading = "true";
+        }
+
+        status.dataset.status = "pending";
+        status.textContent = "Saving item…";
+
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+
+        try {
+          const response = await fetch("/api/buyer/inventory", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error ?? "Unable to save item.");
+          }
+
+          status.dataset.status = "success";
+          status.textContent = "Item saved! Refreshing your dashboard…";
+          setTimeout(() => {
+            window.location.reload();
+          }, 700);
+        } catch (error) {
+          console.error(error);
+          status.dataset.status = "error";
+          status.textContent = error instanceof Error ? error.message : "Something went wrong.";
+        } finally {
+          if (submit instanceof HTMLButtonElement) {
+            submit.disabled = false;
+            delete submit.dataset.loading;
+          }
+        }
+      });
+    })();
+  </script>
+
+<style>
+  :global(main) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .page-intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .page-intro h1 {
+    font-size: clamp(2rem, 5vw, 2.6rem);
+    margin: 0;
+  }
+
+  .lead {
+    color: var(--color-text-muted);
+    max-width: 70ch;
+  }
+
+  .empty {
+    text-align: center;
+    padding: var(--space-xl);
+    background: var(--surface-raised);
+    border-radius: var(--radius-lg);
+  }
+
+  .kpi-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .kpi-grid article {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .kpi-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: var(--space-2xs) 0;
+  }
+
+  .unit {
+    font-size: 1rem;
+    margin-left: var(--space-3xs);
+    color: var(--color-text-muted);
+  }
+
+  .kpi-sub {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .actions-panel {
+    background: var(--surface-raised);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .actions-panel ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: var(--color-text);
+  }
+
+  .inventory table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: var(--space-lg);
+    background: var(--surface-raised);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .inventory th,
+  .inventory td {
+    text-align: left;
+    padding: var(--space-sm);
+    font-size: 0.95rem;
+  }
+
+  .inventory tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .inventory .status {
+    text-transform: capitalize;
+    font-weight: 600;
+  }
+
+  .inventory .status-use-soon {
+    color: var(--color-warning-text);
+  }
+
+  .inventory .status-restock {
+    color: #ffb347;
+  }
+
+  .inventory .status-healthy {
+    color: #6fe7c4;
+  }
+
+  .inventory .status-overflow {
+    color: #66d9ed;
+  }
+
+  .add-form {
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .add-form .form-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .status-message {
+    font-size: 0.9rem;
+  }
+
+  .status-message[data-status="pending"] {
+    color: var(--color-primary);
+  }
+
+  .status-message[data-status="success"] {
+    color: #6fe7c4;
+  }
+
+  .status-message[data-status="error"] {
+    color: #ffa0a0;
+  }
+
+  .plan-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .plan-grid article {
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .plan-grid ul {
+    padding-left: var(--space-lg);
+  }
+
+  .diet-schedule ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .diet-schedule li {
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-2xs);
+  }
+
+  .diet-schedule li strong {
+    font-size: 1.1rem;
+  }
+
+  .events ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .events li {
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .event-head {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+
+  .badge {
+    padding: var(--space-3xs) var(--space-2xs);
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-on-track {
+    background: rgba(111, 231, 196, 0.15);
+    color: #6fe7c4;
+  }
+
+  .badge-needs-shopping {
+    background: rgba(255, 163, 102, 0.15);
+    color: #ffa366;
+  }
+
+  .badge-draft {
+    background: rgba(102, 217, 237, 0.15);
+    color: #66d9ed;
+  }
+
+  .shopping {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .shopping li {
+    background: rgba(255, 255, 255, 0.05);
+    padding: var(--space-3xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
+    display: flex;
+    gap: var(--space-3xs);
+  }
+
+  .focus-callout {
+    margin-top: var(--space-md);
+    background: rgba(102, 217, 237, 0.1);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+  }
+
+  .offers ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .offers li {
+    background: var(--surface-raised);
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-3xs);
+  }
+
+  .offers li.highlight {
+    border: 1px dashed rgba(102, 217, 237, 0.4);
+    background: rgba(102, 217, 237, 0.08);
+  }
+
+  @media (max-width: 640px) {
+    .inventory table,
+    .inventory thead,
+    .inventory tbody,
+    .inventory th,
+    .inventory td,
+    .inventory tr {
+      display: block;
+    }
+
+    .inventory thead {
+      display: none;
+    }
+
+    .inventory td {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .inventory td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+  }
+  
+  .product-card {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid transparent;
+  }
+
+  .product-card.highlight {
+    border-color: var(--color-primary-soft);
+    box-shadow: var(--shadow-md);
+  }
+
+  .product-card h3 {
+    margin: 0;
+  }
+
+  .category {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+
+  .price {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .cta,
+  .secondary {
+    border: none;
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .cta {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .secondary {
+    background: var(--surface-subtle);
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .shopping-focus li {
+      grid-template-columns: 1fr;
+      text-align: left;
+    }
+  }
+</style>

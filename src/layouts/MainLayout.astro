@@ -27,9 +27,11 @@ const { title, description = 'Wakefern Marketplace — reduce waste, boost local
 	</head>
 	<body>
 		<header style="padding: 1.5rem clamp(1rem, 2vw, 2.5rem);">
-			<nav style="display: flex; justify-content: space-between; align-items: center;">
+			<nav style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
 				<a href="/" style="font-weight: 700; font-size: 1.1rem;">Wakefern Marketplace</a>
-				<div class="actions">
+				<div class="actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+					<a href="/buyer/dashboard" class="button button--ghost">Buyer dashboard</a>
+					<a href="/seller/dashboard" class="button button--ghost">Seller dashboard</a>
 					<a href="/buyer/login" class="button button--secondary">Buyer sign in</a>
 					<a href="/seller/login" class="button button--secondary">Seller sign in</a>
 				</div>

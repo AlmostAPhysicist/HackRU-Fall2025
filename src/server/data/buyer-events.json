@@ -1,0 +1,37 @@
+[
+  {
+    "id": "event-001",
+    "name": "Friendsgiving Brunch",
+    "date": "2025-11-23",
+    "headcount": 10,
+    "menu": ["pumpkin waffles", "cranberry mimosas", "herb frittata"],
+    "shoppingList": [
+      {"item": "sweet potatoes", "qty": 4, "unit": "lb", "status": "add"},
+      {"item": "cranberry juice", "qty": 3, "unit": "bottles", "status": "add"},
+      {"item": "eggs", "qty": 12, "unit": "count", "status": "covered"}
+    ]
+  },
+  {
+    "id": "event-002",
+    "name": "Thanksgiving Dinner",
+    "date": "2025-11-28",
+    "headcount": 14,
+    "menu": ["heritage turkey", "rosemary potatoes", "green bean casserole"],
+    "shoppingList": [
+      {"item": "heritage turkey", "qty": 1, "unit": "bird", "status": "reserve"},
+      {"item": "fresh herbs", "qty": 5, "unit": "oz", "status": "expiring"},
+      {"item": "green beans", "qty": 3, "unit": "lb", "status": "add"}
+    ]
+  },
+  {
+    "id": "event-003",
+    "name": "Sunday Meal Prep",
+    "date": "2025-10-12",
+    "headcount": 4,
+    "menu": ["spinach quiche", "sweet potato hash"],
+    "shoppingList": [
+      {"item": "spinach", "qty": 0.5, "unit": "kg", "status": "use-first"},
+      {"item": "sweet potatoes", "qty": 2, "unit": "lb", "status": "add"}
+    ]
+  }
+]

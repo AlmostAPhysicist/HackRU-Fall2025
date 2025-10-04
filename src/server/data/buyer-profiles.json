@@ -1,0 +1,377 @@
+{
+  "profiles": [
+    {
+      "userId": "buyer-001",
+      "displayName": "Buyer Beta",
+      "zip": "07030",
+      "householdSize": 3,
+      "dietaryPreferences": [
+        "balanced",
+        "low-sodium"
+      ],
+      "activityLevel": "active",
+      "budgetPerWeek": 125,
+      "calorieTarget": 2100,
+      "goals": {
+        "reduceWaste": 80,
+        "saveBudget": 65,
+        "eatHealthy": 85
+      },
+      "inventory": [
+        {
+          "id": "inv-b001-1",
+          "name": "Whole Milk",
+          "quantity": 1,
+          "unit": "carton (1L)",
+          "category": "Dairy",
+          "status": "use-soon",
+          "addedOn": "2025-09-28",
+          "expirationDate": "2025-10-07",
+          "daysLeft": 3,
+          "estimatedValue": 4.5
+        },
+        {
+          "id": "inv-b001-2",
+          "name": "Spinach",
+          "quantity": 0.6,
+          "unit": "kg",
+          "category": "Produce",
+          "status": "use-soon",
+          "addedOn": "2025-09-29",
+          "expirationDate": "2025-10-05",
+          "daysLeft": 1,
+          "estimatedValue": 3.2
+        },
+        {
+          "id": "inv-b001-3",
+          "name": "Eggs",
+          "quantity": 10,
+          "unit": "count",
+          "category": "Protein",
+          "status": "healthy",
+          "addedOn": "2025-09-20",
+          "expirationDate": "2025-10-12",
+          "daysLeft": 8,
+          "estimatedValue": 4.8
+        },
+        {
+          "id": "inv-b001-4",
+          "name": "Canned Pumpkin",
+          "quantity": 3,
+          "unit": "cans",
+          "category": "Pantry",
+          "status": "healthy",
+          "addedOn": "2025-08-11",
+          "expirationDate": "2026-02-01",
+          "daysLeft": 120,
+          "estimatedValue": 10.5
+        },
+        {
+          "id": "inv-b001-5",
+          "name": "Brown Sugar",
+          "quantity": 1,
+          "unit": "bag",
+          "category": "Pantry",
+          "status": "healthy",
+          "addedOn": "2025-08-05",
+          "expirationDate": "2026-06-15",
+          "daysLeft": 240,
+          "estimatedValue": 3.99
+        }
+      ],
+      "purchases": [
+        {
+          "id": "purchase-b001-1",
+          "date": "2025-09-28",
+          "total": 58.45,
+          "store": "Fresh Grocer Hoboken",
+          "items": [
+            {
+              "name": "Local Sweet Potatoes",
+              "quantity": 2,
+              "unit": "lb",
+              "category": "Produce"
+            },
+            {
+              "name": "Cranberry Sparkling Juice",
+              "quantity": 1,
+              "unit": "4 pack",
+              "category": "Beverages"
+            },
+            {
+              "name": "Spinach",
+              "quantity": 1,
+              "unit": "kg",
+              "category": "Produce"
+            }
+          ]
+        },
+        {
+          "id": "purchase-b001-2",
+          "date": "2025-09-22",
+          "total": 42.1,
+          "store": "Market On Willow",
+          "items": [
+            {
+              "name": "Organic Cranberries",
+              "quantity": 2,
+              "unit": "pack",
+              "category": "Produce"
+            },
+            {
+              "name": "Heritage Turkey Deposit",
+              "quantity": 1,
+              "unit": "order",
+              "category": "Protein"
+            }
+          ]
+        },
+        {
+          "id": "purchase-b001-3",
+          "date": "2025-09-15",
+          "total": 33.9,
+          "store": "Downtown Pantry Co-op",
+          "items": [
+            {
+              "name": "Steel Cut Oats",
+              "quantity": 1,
+              "unit": "bag",
+              "category": "Pantry"
+            },
+            {
+              "name": "Greek Yogurt",
+              "quantity": 2,
+              "unit": "tub",
+              "category": "Dairy"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "id": "event-b001-1",
+          "name": "Friendsgiving Brunch",
+          "date": "2025-11-23",
+          "headcount": 10,
+          "menu": [
+            "Pumpkin waffles",
+            "Cranberry mimosas",
+            "Herb frittata"
+          ],
+          "status": "needs-shopping",
+          "shoppingList": [
+            {
+              "name": "Sweet Potatoes",
+              "quantity": 4,
+              "unit": "lb",
+              "status": "add"
+            },
+            {
+              "name": "Fresh Herbs",
+              "quantity": 6,
+              "unit": "oz",
+              "status": "add"
+            },
+            {
+              "name": "Eggs",
+              "quantity": 12,
+              "unit": "count",
+              "status": "covered"
+            }
+          ]
+        },
+        {
+          "id": "event-b001-2",
+          "name": "Sunday Meal Prep",
+          "date": "2025-10-12",
+          "headcount": 4,
+          "menu": [
+            "Spinach quiche",
+            "Sweet potato hash"
+          ],
+          "status": "on-track",
+          "shoppingList": [
+            {
+              "name": "Spinach",
+              "quantity": 0.5,
+              "unit": "kg",
+              "status": "covered"
+            },
+            {
+              "name": "Sweet Potatoes",
+              "quantity": 2,
+              "unit": "lb",
+              "status": "add"
+            }
+          ]
+        }
+      ],
+      "lastUpdated": "2025-10-03"
+    },
+    {
+      "userId": "buyer-b06b58d6-5135-4f9f-a2e2-13ff557f68c6",
+      "displayName": "Maddy",
+      "zip": "07302",
+      "householdSize": 2,
+      "dietaryPreferences": [
+        "vegetarian leaning",
+        "budget-conscious"
+      ],
+      "activityLevel": "moderate",
+      "budgetPerWeek": 95,
+      "calorieTarget": 1900,
+      "goals": {
+        "reduceWaste": 72,
+        "saveBudget": 82,
+        "eatHealthy": 78
+      },
+      "inventory": [
+        {
+          "id": "inv-maddy-1",
+          "name": "Kale",
+          "quantity": 0.4,
+          "unit": "kg",
+          "category": "Produce",
+          "status": "use-soon",
+          "addedOn": "2025-09-30",
+          "expirationDate": "2025-10-06",
+          "daysLeft": 2,
+          "estimatedValue": 3.1
+        },
+        {
+          "id": "inv-maddy-2",
+          "name": "Chickpeas",
+          "quantity": 4,
+          "unit": "cans",
+          "category": "Pantry",
+          "status": "healthy",
+          "addedOn": "2025-07-15",
+          "expirationDate": "2026-05-20",
+          "daysLeft": 230,
+          "estimatedValue": 5.2
+        },
+        {
+          "id": "inv-maddy-3",
+          "name": "Brown Rice",
+          "quantity": 1.5,
+          "unit": "kg",
+          "category": "Pantry",
+          "status": "healthy",
+          "addedOn": "2025-08-22",
+          "expirationDate": "2026-03-10",
+          "daysLeft": 160,
+          "estimatedValue": 6.5
+        },
+        {
+          "id": "inv-cfeca55b-ff5d-4f6f-9c58-a07fa6e32bba",
+          "name": "Eggs",
+          "quantity": 5,
+          "unit": "eggs",
+          "category": "Produce",
+          "status": "use-soon",
+          "addedOn": "2025-10-04",
+          "expirationDate": "2025-10-05",
+          "daysLeft": 0
+        }
+      ],
+      "purchases": [
+        {
+          "id": "purchase-maddy-1",
+          "date": "2025-09-26",
+          "total": 38.75,
+          "store": "Hamilton Park Market",
+          "items": [
+            {
+              "name": "Kale",
+              "quantity": 1,
+              "unit": "bunch",
+              "category": "Produce"
+            },
+            {
+              "name": "Sweet Potatoes",
+              "quantity": 3,
+              "unit": "lb",
+              "category": "Produce"
+            },
+            {
+              "name": "Tofu",
+              "quantity": 2,
+              "unit": "pack",
+              "category": "Protein"
+            }
+          ]
+        },
+        {
+          "id": "purchase-maddy-2",
+          "date": "2025-09-18",
+          "total": 27.4,
+          "store": "Grove Street Co-op",
+          "items": [
+            {
+              "name": "Chickpeas",
+              "quantity": 2,
+              "unit": "cans",
+              "category": "Pantry"
+            },
+            {
+              "name": "Brown Rice",
+              "quantity": 1,
+              "unit": "kg",
+              "category": "Pantry"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "id": "event-maddy-1",
+          "name": "Game Night Potluck",
+          "date": "2025-10-18",
+          "headcount": 6,
+          "menu": [
+            "Roasted sweet potato bowls",
+            "Kale salad",
+            "Chickpea hummus"
+          ],
+          "status": "draft",
+          "shoppingList": [
+            {
+              "name": "Sweet Potatoes",
+              "quantity": 2,
+              "unit": "lb",
+              "status": "add"
+            },
+            {
+              "name": "Pita Chips",
+              "quantity": 2,
+              "unit": "bags",
+              "status": "add"
+            }
+          ]
+        }
+      ],
+      "lastUpdated": "2025-10-04"
+    },
+    {
+      "userId": "buyer-dd5f76e3-0718-4ea4-a114-900d87fc0876",
+      "displayName": "Jake",
+      "zip": "07030",
+      "householdSize": 1,
+      "dietaryPreferences": [
+        "balanced"
+      ],
+      "activityLevel": "moderate",
+      "budgetPerWeek": 90,
+      "calorieTarget": 2000,
+      "goals": {
+        "reduceWaste": 60,
+        "saveBudget": 60,
+        "eatHealthy": 60
+      },
+      "inventory": [],
+      "purchases": [],
+      "events": [],
+      "lastUpdated": "2025-10-04"
+    }
+  ]
+}

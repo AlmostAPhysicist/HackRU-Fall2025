@@ -26,8 +26,16 @@ export async function loginRoute(request: Request) {
 		});
 	}
 
+	const redirectTo = `/${result.user.role}/dashboard?user=${result.user.id}`;
+
 	return new Response(
-		JSON.stringify({ message: `Welcome back, ${result.user.displayName}!`, role: result.user.role }),
+		JSON.stringify({
+			message: `Welcome back, ${result.user.displayName}!`,
+			role: result.user.role,
+			userId: result.user.id,
+			displayName: result.user.displayName,
+			redirectTo,
+		}),
 		{
 			status: 200,
 			headers: { 'content-type': 'application/json' },
@@ -55,8 +63,16 @@ export async function signupRoute(request: Request) {
 		});
 	}
 
+	const redirectTo = `/${result.user.role}/dashboard?user=${result.user.id}`;
+
 	return new Response(
-		JSON.stringify({ message: `Welcome aboard, ${result.user.displayName}!`, role: result.user.role }),
+		JSON.stringify({
+			message: `Welcome aboard, ${result.user.displayName}!`,
+			role: result.user.role,
+			userId: result.user.id,
+			displayName: result.user.displayName,
+			redirectTo,
+		}),
 		{
 			status: 201,
 			headers: { 'content-type': 'application/json' },

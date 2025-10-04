@@ -1,0 +1,46 @@
+[
+  {
+    "id": "offer-001",
+    "zip": "07030",
+    "storeName": "Fresh Grocer Hoboken",
+    "category": "Produce",
+    "description": "Friendsgiving prep bundle (sweet potatoes, herbs, cranberries)",
+    "discountPercent": 12,
+    "validThrough": "2025-11-20",
+    "items": ["sweet potatoes", "herbs bundle", "organic cranberries"],
+    "type": "bundle"
+  },
+  {
+    "id": "offer-002",
+    "zip": "07030",
+    "storeName": "Market On Willow",
+    "category": "Beverages",
+    "description": "Cranberry sparkling juice BOGO 50%",
+    "discountPercent": 50,
+    "validThrough": "2025-11-30",
+    "items": ["cranberry sparkling juice"],
+    "type": "loyalty"
+  },
+  {
+    "id": "offer-003",
+    "zip": "07302",
+    "storeName": "Hamilton Park Market",
+    "category": "Produce",
+    "description": "Local greens restock kit (kale + spinach + herbs)",
+    "discountPercent": 15,
+    "validThrough": "2025-10-18",
+    "items": ["kale", "spinach", "fresh herbs"],
+    "type": "bundle"
+  },
+  {
+    "id": "offer-004",
+    "zip": "07302",
+    "storeName": "Grove Street Co-op",
+    "category": "Pantry",
+    "description": "Bulk legumes 3 for $8",
+    "discountPercent": 18,
+    "validThrough": "2025-10-25",
+    "items": ["chickpeas", "lentils", "black beans"],
+    "type": "markdown"
+  }
+]

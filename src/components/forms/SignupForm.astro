@@ -98,11 +98,12 @@ const redirectPath = role === 'buyer' ? '/buyer/login' : '/seller/login';
 				const result = await response.json().catch(() => ({}));
 
 				if (response.ok) {
-					setStatus(result.message ?? 'Account created! Redirecting to sign in…', 'success');
+					const target = typeof result.redirectTo === 'string' ? result.redirectTo : redirect;
+					setStatus(result.message ?? 'Account created! Redirecting…', 'success');
 					form.reset();
 					setTimeout(() => {
-						window.location.href = redirect;
-					}, 1200);
+						window.location.href = target;
+					}, 900);
 				} else if (response.status === 409) {
 					setStatus(`You already have an account! <a href="${redirect}">Sign in.</a>`, 'info', { html: true });
 					setTimeout(() => {

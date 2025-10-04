@@ -121,9 +121,24 @@ const messageId = `${role}-login-message`;
 				const result = await response.json().catch(() => ({}));
 
 				if (response.ok) {
-					setStatus(result.message ?? 'Signed in successfully.', 'success');
-					form.reset();
-					updateButton('signin');
+					const sessionPayload = {
+						userId: result.userId,
+						role: result.role ?? userRole,
+						displayName: result.displayName,
+					};
+
+					try {
+						window.sessionStorage.setItem('wakefern-session', JSON.stringify(sessionPayload));
+					} catch (error) {
+						console.warn('Unable to write session storage', error);
+					}
+
+					const redirectTo = typeof result.redirectTo === 'string' ? result.redirectTo : `/${sessionPayload.role}/dashboard?user=${sessionPayload.userId}`;
+					setStatus('Signed in! Redirecting to your dashboard…', 'success');
+					setTimeout(() => {
+						window.location.href = redirectTo;
+					}, 600);
+					return;
 				} else {
 					const errorMessage = result.error ?? 'Unable to sign in. Please try again.';
 					if (errorMessage.includes('No account matches')) {

@@ -179,3 +179,8 @@ Demo credentials for the prototype routes:
 - Seller — `seller@example.com` / `seller123`
 
 Sign up with your own buyer account at `http://localhost:4321/buyer/signup`; newly created profiles are stored in `src/server/data/users.json` for quick iteration.
+
+### Prototype dashboards
+
+- Buyer dashboard (`/buyer/dashboard`) visualizes pantry health, upcoming events, and marketplace picks using fixture data in `src/server/data/buyer-*.json` and `products.json`.
+- Seller dashboard (`/seller/dashboard`) surfaces revenue KPIs, demand alerts, inventory risk, and promotion ideas powered by `src/server/data/seller-metrics.json` and the shared product catalog.

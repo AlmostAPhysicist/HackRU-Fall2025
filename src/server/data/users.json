@@ -19,5 +19,12 @@
     "password": "123",
     "displayName": "Maddy",
     "role": "buyer"
+  },
+  {
+    "id": "buyer-dd5f76e3-0718-4ea4-a114-900d87fc0876",
+    "email": "jake@example.com",
+    "password": "123",
+    "displayName": "Jake",
+    "role": "buyer"
   }
 ]

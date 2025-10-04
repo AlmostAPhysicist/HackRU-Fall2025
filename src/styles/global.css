@@ -116,6 +116,12 @@ input:focus {
 	border: 1px solid rgba(102, 217, 237, 0.4);
 }
 
+.button--ghost {
+	background: transparent;
+	color: var(--color-muted);
+	border: 1px solid rgba(102, 217, 237, 0.15);
+}
+
 .button:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 16px 32px rgba(102, 217, 237, 0.45);

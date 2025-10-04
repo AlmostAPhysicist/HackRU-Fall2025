@@ -1,0 +1,128 @@
+{
+  "profiles": [
+    {
+      "userId": "seller-001",
+      "displayName": "Seller Sigma",
+      "store": {
+        "name": "Fresh Grocer Hoboken",
+        "zip": "07030",
+        "region": "Hudson County",
+        "format": "grocery"
+      },
+      "goals": {
+        "reduceSpoilage": 78,
+        "increaseSellThrough": 85,
+        "growBundles": 70
+      },
+      "inventory": [
+        {
+          "sku": "sku-004",
+          "name": "Farmhouse Herbs Bundle",
+          "category": "Produce",
+          "stock": 120,
+          "parLevel": 70,
+          "daysOnHand": 6,
+          "status": "risk",
+          "spoilageRisk": 68,
+          "margin": 0.28
+        },
+        {
+          "sku": "sku-006",
+          "name": "Cranberry Sparkling Juice",
+          "category": "Beverages",
+          "stock": 48,
+          "parLevel": 60,
+          "daysOnHand": 19,
+          "status": "healthy",
+          "spoilageRisk": 22,
+          "margin": 0.34
+        },
+        {
+          "sku": "sku-001",
+          "name": "Local Sweet Potatoes",
+          "category": "Produce",
+          "stock": 95,
+          "parLevel": 90,
+          "daysOnHand": 9,
+          "status": "healthy",
+          "spoilageRisk": 18,
+          "margin": 0.31
+        },
+        {
+          "sku": "sku-005",
+          "name": "Pumpkin Pie Kit",
+          "category": "Bakery",
+          "stock": 52,
+          "parLevel": 40,
+          "daysOnHand": 11,
+          "status": "overflow",
+          "spoilageRisk": 36,
+          "margin": 0.26
+        }
+      ],
+      "demandSignals": [
+        {
+          "id": "signal-001",
+          "zip": "07030",
+          "startDate": "2025-11-18",
+          "endDate": "2025-11-27",
+          "expectedLift": 0.32,
+          "focusItems": ["sweet potatoes", "cranberries", "pumpkin pie kit"]
+        },
+        {
+          "id": "signal-002",
+          "zip": "07302",
+          "startDate": "2025-12-05",
+          "endDate": "2025-12-15",
+          "expectedLift": 0.21,
+          "focusItems": ["cranberry sparkling juice", "herbs bundle"]
+        }
+      ],
+      "promotions": [
+        {
+          "id": "promo-001",
+          "name": "Friendsgiving Starter Bundle",
+          "status": "recommended",
+          "channel": "app",
+          "discount": "Save 12%",
+          "focusItems": ["sweet potatoes", "cranberries", "herbs bundle"]
+        },
+        {
+          "id": "promo-002",
+          "name": "Holiday Brunch Sparkler",
+          "status": "draft",
+          "channel": "in-store",
+          "discount": "BOGO 50%",
+          "focusItems": ["cranberry sparkling juice", "pumpkin pie kit"]
+        }
+      ],
+      "nearbyBuyerInsights": [
+        {
+          "zip": "07030",
+          "upcomingEvents": 6,
+          "topItems": ["sweet potatoes", "fresh herbs", "cranberry juice"]
+        },
+        {
+          "zip": "07302",
+          "upcomingEvents": 4,
+          "topItems": ["kale", "chickpeas", "sweet potatoes"]
+        }
+      ],
+      "salesPerformance": [
+        {
+          "weekOf": "2025-09-29",
+          "revenue": 24875,
+          "grossMargin": 0.31,
+          "wasteAvoided": 126
+        },
+        {
+          "weekOf": "2025-09-22",
+          "revenue": 23110,
+          "grossMargin": 0.29,
+          "wasteAvoided": 114
+        }
+      ],
+      "lastUpdated": "2025-10-03"
+    }
+  ]
+}

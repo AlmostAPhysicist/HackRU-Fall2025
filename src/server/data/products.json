@@ -1,0 +1,62 @@
+[
+  {
+    "id": "sku-001",
+    "name": "Local Sweet Potatoes",
+    "category": "Produce",
+    "price": 4.5,
+    "unit": "2 lb bag",
+    "freshnessScore": 92,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 14
+  },
+  {
+    "id": "sku-002",
+    "name": "Organic Cranberries",
+    "category": "Produce",
+    "price": 3.2,
+    "unit": "12 oz pack",
+    "freshnessScore": 88,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 10
+  },
+  {
+    "id": "sku-003",
+    "name": "Heritage Turkey",
+    "category": "Protein",
+    "price": 39.99,
+    "unit": "12 lb avg",
+    "freshnessScore": 95,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 6
+  },
+  {
+    "id": "sku-004",
+    "name": "Farmhouse Herbs Bundle",
+    "category": "Produce",
+    "price": 5.0,
+    "unit": "5 oz",
+    "freshnessScore": 74,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 5
+  },
+  {
+    "id": "sku-005",
+    "name": "Pumpkin Pie Kit",
+    "category": "Bakery",
+    "price": 12.5,
+    "unit": "kit",
+    "freshnessScore": 81,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 9
+  },
+  {
+    "id": "sku-006",
+    "name": "Cranberry Sparkling Juice",
+    "category": "Beverages",
+    "price": 6.75,
+    "unit": "4 pack",
+    "freshnessScore": 86,
+    "sellerId": "seller-001",
+    "shelfLifeDays": 120
+  }
+]

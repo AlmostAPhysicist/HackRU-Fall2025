@@ -19,7 +19,9 @@ Pages that consume these helpers:
 - `src/pages/index.astro` — Overview landing page linking to buyer and seller flows.
 - `src/pages/buyer/login.astro` — Buyer-facing login/sign-up messaging.
 - `src/pages/buyer/signup.astro` — Buyer sign-up experience with shared form component.
+- `src/pages/buyer/dashboard.astro` — Buyer pantry + planning dashboard powered by demo data.
 - `src/pages/seller/login.astro` — Seller-facing login messaging.
+- `src/pages/seller/dashboard.astro` — Seller HQ dashboard for demand, inventory, and promotions.
 
 ---
 
@@ -32,6 +34,10 @@ Pages that consume these helpers:
 5. `src/server/index.ts` — Aggregates exported routes for easy import inside API endpoints.
 6. `src/server/env.example.ts` — Reference environment variables for local and deployed setups.
 7. `src/server/data/users.json` — Demo datastore seeded with buyer/seller accounts and updated on sign-up.
+8. `src/server/data/products.json` — Shared catalog of featured seasonal products used by dashboards.
+9. `src/server/data/buyer-inventory.json` — Mock pantry inventory for the buyer dashboard.
+10. `src/server/data/buyer-events.json` — Sample events and shopping lists for consolidation demos.
+11. `src/server/data/seller-metrics.json` — Seller KPI, demand alerts, and promotion ideas.
 
 API endpoint leveraging these helpers:
 - `src/pages/api/login.ts` — Astro API route that wires the shared login handler.
@@ -52,4 +58,5 @@ API endpoint leveraging these helpers:
 - Update the in-memory dataset in `models.ts` with demo accounts for showcases; the same helpers can later connect to a real database.
 - Add additional services or models inside the existing folders to respect the 6–7 file guidance before introducing new directories.
 - When new UI needs arise (e.g., dashboards), extend the current components/pages before creating new primitives to keep the footprint lean.
+- The new dashboards read from JSON fixtures; replace these with live queries or APIs when wiring to a real backend.
 

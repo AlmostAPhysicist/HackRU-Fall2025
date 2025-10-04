@@ -1,0 +1,433 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import metrics from "../../server/data/seller-metrics.json";
+import products from "../../server/data/products.json";
+
+const topProducts = [...products]
+  .sort((a, b) => b.freshnessScore - a.freshnessScore)
+  .slice(0, 4);
+
+const seasonalBundles = [
+  {
+    name: "Friendsgiving Essentials",
+    components: ["Local Sweet Potatoes", "Organic Cranberries", "Farmhouse Herbs Bundle"],
+    expectedLift: "+22% bundle uplift",
+    marginImpact: "+$520 / week"
+  },
+  {
+    name: "Holiday Dinner Anchor",
+    components: ["Heritage Turkey", "Pumpkin Pie Kit"],
+    expectedLift: "+18% attachment",
+    marginImpact: "+$410 / week"
+  }
+];
+
+const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + alert.confidence, 0) / metrics.demandAlerts.length;
+---
+
+<MainLayout title="Seller Dashboard">
+  <section class="page-intro">
+    <h1>Fresh Grocer HQ</h1>
+    <p class="lead">Monitor inventory health, demand spikes, and promotion opportunities in one glance.</p>
+  </section>
+
+  <section class="kpi-grid">
+    <article>
+      <h2>Revenue (7d)</h2>
+      <p class="kpi-value">${metrics.kpis.revenueWeek.toLocaleString()}</p>
+      <p class="kpi-sub">{metrics.kpis.revenueChangePct}% vs. last week</p>
+    </article>
+    <article>
+      <h2>Sell-through rate</h2>
+      <p class="kpi-value">{Math.round(metrics.kpis.sellThroughRate * 100)}<span class="unit">%</span></p>
+      <p class="kpi-sub">High velocity across seasonal SKUs</p>
+    </article>
+    <article>
+      <h2>Spoilage avoided</h2>
+      <p class="kpi-value">{metrics.kpis.spoilageAvoidedLb}<span class="unit">lb</span></p>
+      <p class="kpi-sub">Thanks to proactive alerts + donations</p>
+    </article>
+    <article>
+      <h2>Promo lift</h2>
+      <p class="kpi-value">{metrics.kpis.promotionLiftPct}<span class="unit">%</span></p>
+      <p class="kpi-sub">Last 3 featured campaigns</p>
+    </article>
+  </section>
+
+  <section class="alerts">
+    <header>
+      <h2>Demand radar</h2>
+      <p>Upcoming spikes powered by buyer meal plans and events.</p>
+    </header>
+    <div class="alert-grid">
+      {metrics.demandAlerts.map((alert) => (
+        <article>
+          <h3>{alert.zip}</h3>
+          <p class="window">{alert.timeWindow}</p>
+          <ul>
+            {alert.focusItems.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+          <p class="confidence">Confidence: {(alert.confidence * 100).toFixed(0)}%</p>
+          <p class="action">{alert.recommendedAction}</p>
+        </article>
+      ))}
+    </div>
+    <footer class="alerts-summary">
+      <span>Avg confidence {Math.round(forecastConfidence * 100)}%</span>
+      <button class="cta">Export demand CSV</button>
+    </footer>
+  </section>
+
+  <section class="inventory">
+    <header>
+      <h2>Inventory health check</h2>
+      <p>Target markdowns before items expire. Align replenishment to demand.</p>
+    </header>
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Item</th>
+          <th>Stock</th>
+          <th>Days on hand</th>
+          <th>Risk</th>
+          <th>Suggested action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {metrics.inventoryRisks.map((risk) => (
+          <tr class={`risk-${risk.risk.toLowerCase().split(" ")[0]}`}>
+            <td data-label="SKU">{risk.sku}</td>
+            <td data-label="Item">{risk.name}</td>
+            <td data-label="Stock">{risk.currentStock}</td>
+            <td data-label="Days on hand">{risk.daysOnHand}</td>
+            <td data-label="Risk">{risk.risk}</td>
+            <td data-label="Suggested action">{risk.suggestion}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="promotions">
+    <header>
+      <h2>Promotion builder</h2>
+      <p>Bundle seasonal heroes into campaigns shoppers will love.</p>
+    </header>
+    <div class="promotion-grid">
+      {metrics.promotionIdeas.map((idea) => (
+        <article>
+          <h3>{idea.name}</h3>
+          <ul>
+            {idea.components.map((component) => (
+              <li>{component}</li>
+            ))}
+          </ul>
+          <p class="discount">{idea.discount}</p>
+          <p class="audience">Audience: {idea.audience}</p>
+          <button class="cta secondary">Launch draft</button>
+        </article>
+      ))}
+      {seasonalBundles.map((bundle) => (
+        <article class="derived">
+          <h3>{bundle.name}</h3>
+          <ul>
+            {bundle.components.map((component) => (
+              <li>{component}</li>
+            ))}
+          </ul>
+          <p class="lift">{bundle.expectedLift}</p>
+          <p class="margin">Projected margin {bundle.marginImpact}</p>
+          <button class="cta">Add to calendar</button>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="catalog">
+    <header>
+      <h2>Catalog spotlight</h2>
+      <p>Top freshness-score products ready for marketplace placement.</p>
+    </header>
+    <div class="product-grid">
+      {topProducts.map((product) => (
+        <article>
+          <header>
+            <h3>{product.name}</h3>
+            <span class="category">{product.category}</span>
+          </header>
+          <dl>
+            <div>
+              <dt>Price</dt>
+              <dd>${product.price.toFixed(2)} / {product.unit}</dd>
+            </div>
+            <div>
+              <dt>Freshness score</dt>
+              <dd>{product.freshnessScore}</dd>
+            </div>
+            <div>
+              <dt>Shelf life</dt>
+              <dd>{product.shelfLifeDays} days</dd>
+            </div>
+          </dl>
+          <footer>
+            <button class="cta">Feature in marketplace</button>
+            <button class="secondary">Adjust pricing</button>
+          </footer>
+        </article>
+      ))}
+    </div>
+  </section>
+</MainLayout>
+
+<style>
+  :global(main) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .page-intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .page-intro h1 {
+    font-size: clamp(2rem, 5vw, 2.6rem);
+    margin: 0;
+  }
+
+  .lead {
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+
+  .kpi-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .kpi-grid article {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .kpi-value {
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin: var(--space-xs) 0;
+  }
+
+  .unit {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    margin-left: var(--space-2xs);
+  }
+
+  .kpi-sub {
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .alerts header,
+  .inventory header,
+  .promotions header,
+  .catalog header {
+    margin-bottom: var(--space-sm);
+  }
+
+  .alert-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .alert-grid article {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .alert-grid h3 {
+    margin: 0;
+  }
+
+  .window {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  .confidence {
+    font-weight: 600;
+  }
+
+  .action {
+    font-size: 0.95rem;
+  }
+
+  .alerts-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-sm);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface-raised);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  thead {
+    background: var(--surface-subtle);
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: var(--space-sm);
+    font-size: 0.95rem;
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .risk-high {
+    border-left: 4px solid var(--color-warning-text);
+  }
+
+  .risk-moderate {
+    border-left: 4px solid var(--color-accent);
+  }
+
+  .promotion-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .promotion-grid article {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .promotion-grid .derived {
+    border: 1px dashed var(--color-primary-soft);
+  }
+
+  .discount,
+  .audience,
+  .lift,
+  .margin {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+  }
+
+  .product-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .product-grid article {
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .product-grid h3 {
+    margin: 0;
+  }
+
+  dl {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  dl div {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+  }
+
+  dt {
+    color: var(--color-text-muted);
+  }
+
+  .cta,
+  .secondary {
+    border: none;
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .cta {
+    background: var(--color-accent);
+    color: var(--surface-base);
+  }
+
+  .secondary {
+    background: var(--surface-subtle);
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 640px) {
+    table,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+      display: block;
+    }
+
+    thead {
+      display: none;
+    }
+
+    tbody tr {
+      margin-bottom: var(--space-sm);
+      padding: var(--space-sm);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      background: var(--surface-raised);
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-right: var(--space-md);
+    }
+  }
+</style>

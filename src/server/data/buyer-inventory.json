@@ -1,0 +1,42 @@
+[
+  {
+    "item": "Whole Milk",
+    "quantity": 1,
+    "unit": "carton (1L)",
+    "location": "Fridge",
+    "expirationDate": "2025-10-07",
+    "status": "expiring-soon"
+  },
+  {
+    "item": "Spinach",
+    "quantity": 0.5,
+    "unit": "kg",
+    "location": "Fridge",
+    "expirationDate": "2025-10-05",
+    "status": "use-next"
+  },
+  {
+    "item": "Eggs",
+    "quantity": 10,
+    "unit": "count",
+    "location": "Fridge",
+    "expirationDate": "2025-10-12",
+    "status": "ready"
+  },
+  {
+    "item": "Canned Pumpkin",
+    "quantity": 3,
+    "unit": "cans",
+    "location": "Pantry",
+    "expirationDate": "2026-02-01",
+    "status": "stocked"
+  },
+  {
+    "item": "Brown Sugar",
+    "quantity": 1,
+    "unit": "bag",
+    "location": "Pantry",
+    "expirationDate": "2026-06-15",
+    "status": "stocked"
+  }
+]
