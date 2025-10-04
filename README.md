@@ -161,3 +161,15 @@ Fresh Grocer in zip 07030 sees a cluster of buyers in nearby neighborhoods plann
 ---
 
 This README is a living product specification: expand it with UI wireframes, sample data exports, and prioritized MVP tasks as you move from planning to implementation.
+
+--
+
+Quick start notes (how to initialize Astro and run the frontend dev server):
+
+- From repo root run (assuming Node, npm, and Astro are installed):
+
+	1. cd apps/www
+	2. npm install
+	3. npm run dev
+
+The above will start the Astro dev server for the frontend. Backend services are scaffolded under `apps/api` and require their own dependencies and environment variables to run.
