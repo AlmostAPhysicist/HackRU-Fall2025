@@ -4,8 +4,8 @@
  * Each handler performs request parsing before delegating to the service layer.
  */
 
-import type { LoginPayload } from './types';
-import { authenticateUser } from './services';
+import type { LoginPayload, SignupPayload } from './types';
+import { authenticateUser, registerUser } from './services';
 
 export async function loginRoute(request: Request) {
 	const body = await safeParseJson<LoginPayload>(request);
@@ -30,6 +30,35 @@ export async function loginRoute(request: Request) {
 		JSON.stringify({ message: `Welcome back, ${result.user.displayName}!`, role: result.user.role }),
 		{
 			status: 200,
+			headers: { 'content-type': 'application/json' },
+		},
+	);
+}
+
+export async function signupRoute(request: Request) {
+	const body = await safeParseJson<SignupPayload>(request);
+
+	if ('error' in body) {
+		return new Response(JSON.stringify({ error: body.error }), {
+			status: 400,
+			headers: { 'content-type': 'application/json' },
+		});
+	}
+
+	const result = await registerUser(body);
+
+	if (!result.ok) {
+		const status = result.error.includes('already exists') ? 409 : 400;
+		return new Response(JSON.stringify({ error: result.error }), {
+			status,
+			headers: { 'content-type': 'application/json' },
+		});
+	}
+
+	return new Response(
+		JSON.stringify({ message: `Welcome aboard, ${result.user.displayName}!`, role: result.user.role }),
+		{
+			status: 201,
 			headers: { 'content-type': 'application/json' },
 		},
 	);

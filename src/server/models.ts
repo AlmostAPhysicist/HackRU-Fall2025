@@ -1,40 +1,49 @@
 /**
  * src/server/models.ts
- * Simplified in-memory data access layer used by services during the hackathon prototype.
+ * Simplified persistence layer backed by a JSON file for hackathon demos.
  */
 
+import { readFile, writeFile } from 'node:fs/promises';
 import type { Role, UserRecord } from './types';
 
-const USERS: UserRecord[] = [
-	{
-		id: 'buyer-001',
-		email: 'buyer@example.com',
-		password: 'buyer123',
-		displayName: 'Buyer Beta',
-		role: 'buyer',
-	},
-	{
-		id: 'seller-001',
-		email: 'seller@example.com',
-		password: 'seller123',
-		displayName: 'Seller Sigma',
-		role: 'seller',
-	},
-];
+const DATA_FILE = new URL('./data/users.json', import.meta.url);
 
-export async function findUserByEmail(email: string): Promise<UserRecord | undefined> {
-	return USERS.find((user) => user.email.toLowerCase() === email.toLowerCase());
+async function readUsers(): Promise<UserRecord[]> {
+	try {
+		const data = await readFile(DATA_FILE, 'utf-8');
+		return JSON.parse(data) as UserRecord[];
+	} catch (error) {
+		console.error('Unable to read users file', error);
+		return [];
+	}
 }
 
-export async function createUser(email: string, password: string, role: Role): Promise<UserRecord> {
+async function writeUsers(users: UserRecord[]): Promise<void> {
+	await writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf-8');
+}
+
+export async function findUserByEmail(email: string): Promise<UserRecord | undefined> {
+	const users = await readUsers();
+	return users.find((user) => user.email.toLowerCase() === email.toLowerCase());
+}
+
+export async function createUser(
+	email: string,
+	password: string,
+	role: Role,
+	displayName?: string,
+): Promise<UserRecord> {
+	const users = await readUsers();
+
 	const newUser: UserRecord = {
 		id: `${role}-${crypto.randomUUID()}`,
 		email,
 		password,
-		displayName: email.split('@')[0] ?? 'New user',
+		displayName: displayName?.trim() || email.split('@')[0] || 'New user',
 		role,
 	};
 
-	USERS.push(newUser);
+	users.push(newUser);
+	await writeUsers(users);
 	return newUser;
 }

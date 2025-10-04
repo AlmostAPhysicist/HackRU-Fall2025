@@ -11,6 +11,10 @@ export interface LoginPayload {
 	role: Role;
 }
 
+export interface SignupPayload extends LoginPayload {
+	displayName?: string;
+}
+
 export interface UserRecord extends LoginPayload {
 	id: string;
 	displayName: string;

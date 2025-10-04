@@ -3,8 +3,8 @@
  * Domain logic for authentication, delegating persistence to the model layer.
  */
 
-import type { LoginPayload } from './types';
-import { findUserByEmail } from './models';
+import type { LoginPayload, SignupPayload } from './types';
+import { createUser, findUserByEmail } from './models';
 
 interface AuthSuccess {
 	ok: true;
@@ -38,8 +38,39 @@ export async function authenticateUser(payload: LoginPayload): Promise<AuthSucce
 	}
 
 	if (user.password !== password) {
-		return { ok: false, error: 'Incorrect password.' };
+		return { ok: false, error: 'Incorrect login credentials.' };
 	}
+
+	return {
+		ok: true,
+		user: {
+			id: user.id,
+			displayName: user.displayName,
+			role: user.role,
+		},
+	};
+}
+
+export async function registerUser(payload: SignupPayload): Promise<AuthSuccess | AuthFailure> {
+	const email = payload.email?.trim();
+	const password = payload.password?.trim();
+	const role = payload.role;
+	const displayName = payload.displayName?.trim();
+
+	if (!email || !password) {
+		return { ok: false, error: 'Email and password are required.' };
+	}
+
+	if (role !== 'buyer' && role !== 'seller') {
+		return { ok: false, error: 'Unsupported account role.' };
+	}
+
+	const existing = await findUserByEmail(email);
+	if (existing) {
+		return { ok: false, error: 'Account already exists. Please sign in instead.' };
+	}
+
+	const user = await createUser(email, password, role, displayName);
 
 	return {
 		ok: true,

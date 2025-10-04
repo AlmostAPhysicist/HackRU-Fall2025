@@ -1,0 +1,125 @@
+---
+/**
+ * SignupForm.astro
+ * Collects new account details and calls the shared /api/signup route to persist users.
+ */
+
+interface Props {
+	role?: 'buyer' | 'seller';
+}
+
+const { role = 'buyer' } = Astro.props;
+const formId = `${role}-signup-form`;
+const messageId = `${role}-signup-message`;
+const roleLabel = role === 'buyer' ? 'Buyer' : 'Seller';
+const redirectPath = role === 'buyer' ? '/buyer/login' : '/seller/login';
+---
+
+<section aria-labelledby={`${role}-signup-heading`}>
+	<h2 id={`${role}-signup-heading`}>{roleLabel} sign up</h2>
+	<p class="notice">
+		Create your Wakefern Marketplace account to unlock personalized insights and smarter demand planning.
+	</p>
+	<form id={formId} class="form-grid" data-role={role} novalidate>
+		<label>
+			<span>Display name</span>
+			<input type="text" name="displayName" placeholder="Alex Shopper" autocomplete="name" required />
+		</label>
+		<label>
+			<span>Email</span>
+			<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+		</label>
+		<label>
+			<span>Password</span>
+			<input type="password" name="password" placeholder="Create a strong password" autocomplete="new-password" required />
+		</label>
+		<input type="hidden" name="role" value={role} />
+		<div class="actions">
+			<slot name="submit" />
+		</div>
+	</form>
+	<p id={messageId} class="status-message" role="status" aria-live="polite"></p>
+</section>
+
+<script is:inline>
+	(() => {
+		const script = document.currentScript;
+		const section = script?.previousElementSibling;
+		if (!(section instanceof HTMLElement)) return;
+		const form = section.querySelector('form');
+		const message = section.querySelector('.status-message');
+		const submitButton = section.querySelector('button[type="submit"], [type="submit"]');
+		if (!(form instanceof HTMLFormElement) || !(message instanceof HTMLElement)) return;
+
+		const role = form.dataset.role ?? 'buyer';
+		const redirect = role === 'buyer' ? '/buyer/login' : '/seller/login';
+
+		const setStatus = (text, status, options = {}) => {
+			message.dataset.status = status;
+			if (options.html) {
+				message.innerHTML = text;
+			} else {
+				message.textContent = text;
+			}
+		};
+
+		setStatus('Fill in the details below to get started.', 'info');
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+
+			const formData = new FormData(form);
+			const displayName = String(formData.get('displayName') ?? '').trim();
+			const email = String(formData.get('email') ?? '').trim();
+			const password = String(formData.get('password') ?? '').trim();
+
+			if (!displayName || !email || !password) {
+				setStatus('All fields are required to create your account.', 'error');
+				return;
+			}
+
+			if (submitButton instanceof HTMLButtonElement) {
+				submitButton.disabled = true;
+				submitButton.dataset.loading = 'true';
+			}
+
+			setStatus('Creating your account…', 'pending');
+
+			try {
+				const response = await fetch('/api/signup', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json',
+						accept: 'application/json',
+					},
+					body: JSON.stringify({ displayName, email, password, role }),
+				});
+
+				const result = await response.json().catch(() => ({}));
+
+				if (response.ok) {
+					setStatus(result.message ?? 'Account created! Redirecting to sign in…', 'success');
+					form.reset();
+					setTimeout(() => {
+						window.location.href = redirect;
+					}, 1200);
+				} else if (response.status === 409) {
+					setStatus(`You already have an account! <a href="${redirect}">Sign in.</a>`, 'info', { html: true });
+					setTimeout(() => {
+						window.location.href = redirect;
+					}, 1200);
+				} else {
+					setStatus(result.error ?? 'Unable to create your account right now.', 'error');
+				}
+			} catch (error) {
+				console.error(error);
+				setStatus('Network error — check your connection and retry.', 'error');
+			} finally {
+				if (submitButton instanceof HTMLButtonElement) {
+					submitButton.disabled = false;
+					delete submitButton.dataset.loading;
+				}
+			}
+		});
+	})();
+</script>

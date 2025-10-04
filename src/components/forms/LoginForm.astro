@@ -47,20 +47,54 @@ const messageId = `${role}-login-message`;
 		const submitButton = section.querySelector('button[type="submit"], [type="submit"]');
 		if (!(form instanceof HTMLFormElement) || !(message instanceof HTMLElement)) return;
 
-		message.dataset.status = message.dataset.status ?? 'info';
+		const role = form.dataset.role ?? 'buyer';
+		const defaultMessage = 'Enter your email and password to access personalized pantry insights and marketplace tools.';
+		const signupPath = role === 'buyer' ? '/buyer/signup' : 'mailto:partners@wakefern.local';
 
-		const setStatus = (text, status) => {
-			message.textContent = text;
+		message.dataset.status = message.dataset.status ?? 'info';
+		message.textContent = defaultMessage;
+
+		const updateButton = (intent) => {
+			if (!(submitButton instanceof HTMLButtonElement)) return;
+			submitButton.dataset.intent = intent;
+			delete submitButton.dataset.loading;
+			submitButton.disabled = false;
+			submitButton.type = intent === 'signup' ? 'button' : 'submit';
+			if (role === 'buyer') {
+				submitButton.textContent = intent === 'signup' ? 'Sign up' : 'Sign in as buyer';
+			} else {
+				submitButton.textContent = intent === 'signup' ? 'Contact support' : 'Sign in as seller';
+			}
+		};
+
+		const setStatus = (text, status, options = {}) => {
 			message.dataset.status = status;
+			if (options.html) {
+				message.innerHTML = text;
+			} else {
+				message.textContent = text;
+			}
+		};
+
+		updateButton('signin');
+
+		const resetToSigninState = () => {
+			updateButton('signin');
+			setStatus(defaultMessage, 'info');
 		};
 
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
 
+			if (submitButton instanceof HTMLButtonElement && submitButton.dataset.intent === 'signup') {
+				window.location.href = signupPath;
+				return;
+			}
+
 			const formData = new FormData(form);
 			const email = String(formData.get('email') ?? '').trim();
 			const password = String(formData.get('password') ?? '');
-			const userRole = String(formData.get('role') ?? 'buyer');
+			const userRole = String(formData.get('role') ?? role);
 
 			if (!email || !password) {
 				setStatus('Enter both your email and password to continue.', 'error');
@@ -89,8 +123,15 @@ const messageId = `${role}-login-message`;
 				if (response.ok) {
 					setStatus(result.message ?? 'Signed in successfully.', 'success');
 					form.reset();
+					updateButton('signin');
 				} else {
-					setStatus(result.error ?? 'Unable to sign in. Please try again.', 'error');
+					const errorMessage = result.error ?? 'Unable to sign in. Please try again.';
+					if (errorMessage.includes('No account matches')) {
+						updateButton('signup');
+						setStatus(`First time here? <a href="${signupPath}">Sign up!</a>`, 'info', { html: true });
+					} else {
+						setStatus(errorMessage, 'error');
+					}
 				}
 			} catch (error) {
 				console.error(error);
@@ -102,5 +143,24 @@ const messageId = `${role}-login-message`;
 				}
 			}
 		});
+
+		form.querySelectorAll('input').forEach((input) => {
+			input.addEventListener('input', () => {
+				if (!(submitButton instanceof HTMLButtonElement)) return;
+				if (submitButton.dataset.intent === 'signup') {
+					resetToSigninState();
+				} else {
+					setStatus(defaultMessage, 'info');
+				}
+			});
+		});
+
+		if (submitButton instanceof HTMLButtonElement) {
+			submitButton.addEventListener('click', () => {
+				if (submitButton.dataset.intent === 'signup') {
+					window.location.href = signupPath;
+				}
+			});
+		}
 	})();
 </script>

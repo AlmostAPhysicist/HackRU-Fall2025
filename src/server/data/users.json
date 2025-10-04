@@ -1,0 +1,23 @@
+[
+  {
+    "id": "buyer-001",
+    "email": "buyer@example.com",
+    "password": "buyer123",
+    "displayName": "Buyer Beta",
+    "role": "buyer"
+  },
+  {
+    "id": "seller-001",
+    "email": "seller@example.com",
+    "password": "seller123",
+    "displayName": "Seller Sigma",
+    "role": "seller"
+  },
+  {
+    "id": "buyer-b06b58d6-5135-4f9f-a2e2-13ff557f68c6",
+    "email": "maddy@example.com",
+    "password": "123",
+    "displayName": "Maddy",
+    "role": "buyer"
+  }
+]

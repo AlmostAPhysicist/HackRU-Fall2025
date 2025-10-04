@@ -1,0 +1,28 @@
+---
+/**
+ * Buyer signup page
+ * Introduces the benefits of creating a buyer account and renders the shared signup form.
+ */
+
+import MainLayout from '../../layouts/MainLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import SignupForm from '../../components/forms/SignupForm.astro';
+---
+
+<MainLayout title="Create your buyer account — Wakefern Marketplace">
+	<section>
+		<h1>Join Wakefern Marketplace</h1>
+		<p>
+			Unlock pantry intelligence, personalized shopping lists, and event planning tools that help you waste less and host more.
+		</p>
+		<SignupForm role="buyer">
+			<Button slot="submit" type="submit">Create buyer account</Button>
+		</SignupForm>
+	</section>
+	<section>
+		<h2>Already a member?</h2>
+		<p>
+			Head back to the <a href="/buyer/login">buyer sign in page</a> to access your personalized dashboard.
+		</p>
+	</section>
+</MainLayout>

@@ -5,33 +5,37 @@ Everything now lives inside the existing Astro project root. The shared UI layer
 
 ---
 
-## UI support (6 files)
+## UI support (7 files)
 
 1. `astro.config.mjs` — Base Astro configuration and hook for integrations.
 2. `src/styles/global.css` — Global design tokens, layout primitives, and button styles consumed by every page.
 3. `src/layouts/MainLayout.astro` — Application shell with navigation, footer, and bundled global styles.
 4. `src/components/ui/Button.astro` — Reusable call-to-action component supporting link and button semantics.
 5. `src/components/forms/LoginForm.astro` — Role-aware login form that calls the shared `/api/login` endpoint.
-6. `src/lib` *(reserved)* — Expand here if another shared helper is absolutely required to stay within the limit.
+6. `src/components/forms/SignupForm.astro` — Shared sign-up form that posts to `/api/signup` and handles redirects.
+7. `src/lib` *(reserved)* — Expand here if another shared helper is absolutely required to stay within the limit.
 
 Pages that consume these helpers:
 - `src/pages/index.astro` — Overview landing page linking to buyer and seller flows.
 - `src/pages/buyer/login.astro` — Buyer-facing login/sign-up messaging.
+- `src/pages/buyer/signup.astro` — Buyer sign-up experience with shared form component.
 - `src/pages/seller/login.astro` — Seller-facing login messaging.
 
 ---
 
-## Backend helpers (6 files)
+## Backend helpers (7 files)
 
 1. `src/server/types.ts` — Shared type definitions for roles, payloads, and user records.
 2. `src/server/models.ts` — In-memory data access used during the prototype.
-3. `src/server/services.ts` — Business logic for authenticating buyers and sellers.
+3. `src/server/services.ts` — Business logic for authenticating buyers and sellers plus account creation.
 4. `src/server/routes.ts` — HTTP handlers that parse requests and invoke services.
 5. `src/server/index.ts` — Aggregates exported routes for easy import inside API endpoints.
 6. `src/server/env.example.ts` — Reference environment variables for local and deployed setups.
+7. `src/server/data/users.json` — Demo datastore seeded with buyer/seller accounts and updated on sign-up.
 
 API endpoint leveraging these helpers:
 - `src/pages/api/login.ts` — Astro API route that wires the shared login handler.
+- `src/pages/api/signup.ts` — Astro API route that creates new accounts and updates the demo datastore.
 
 ---
 

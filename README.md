@@ -177,3 +177,5 @@ Demo credentials for the prototype routes:
 
 - Buyer — `buyer@example.com` / `buyer123`
 - Seller — `seller@example.com` / `seller123`
+
+Sign up with your own buyer account at `http://localhost:4321/buyer/signup`; newly created profiles are stored in `src/server/data/users.json` for quick iteration.
