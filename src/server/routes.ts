@@ -17,7 +17,16 @@ export async function loginRoute(request: Request) {
 		});
 	}
 
-	const result = await authenticateUser(body);
+	let result;
+	try {
+		result = await authenticateUser(body);
+	} catch (err) {
+		console.error('[routes] authenticateUser failed', err);
+		return new Response(JSON.stringify({ error: 'Internal server error' }), {
+			status: 500,
+			headers: { 'content-type': 'application/json' },
+		});
+	}
 
 	if (!result.ok) {
 		return new Response(JSON.stringify({ error: result.error }), {
@@ -53,7 +62,16 @@ export async function signupRoute(request: Request) {
 		});
 	}
 
-	const result = await registerUser(body);
+	let result;
+	try {
+		result = await registerUser(body);
+	} catch (err) {
+		console.error('[routes] registerUser failed', err);
+		return new Response(JSON.stringify({ error: 'Internal server error' }), {
+			status: 500,
+			headers: { 'content-type': 'application/json' },
+		});
+	}
 
 	if (!result.ok) {
 		const status = result.error.includes('already exists') ? 409 : 400;

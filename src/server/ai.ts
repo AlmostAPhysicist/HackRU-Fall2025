@@ -1,4 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
+import fs from 'node:fs';
+import path from 'node:path';
 import type {
 	BuyerAiInsights,
 	BuyerProfile,
@@ -48,8 +50,31 @@ function readEnv(names: string[]): string | undefined {
 	return undefined;
 }
 
+// Attempt to read a local .env file for development convenience when process.env is not populated
+function readEnvFileValue(names: string[]): string | undefined {
+	try {
+		const envPath = path.join(process.cwd(), '.env');
+		const raw = fs.readFileSync(envPath, 'utf-8');
+		for (const line of raw.split(/\r?\n/)) {
+			if (!line || line.trim().startsWith('#')) continue;
+			const [key, ...rest] = line.split('=');
+			if (!key || rest.length === 0) continue;
+			const value = rest.join('=').trim();
+			if (names.includes(key.trim()) && value.length > 0) {
+				return value;
+			}
+		}
+	} catch (err) {
+		// ignore missing .env silently
+	}
+	return undefined;
+}
+
 const aiClient = (() => {
-	const apiKey = readEnv(['GEMINI_API_KEY', 'AI_API_KEY']);
+	let apiKey = readEnv(['GEMINI_API_KEY', 'AI_API_KEY']);
+	if (!apiKey) {
+		apiKey = readEnvFileValue(['GEMINI_API_KEY', 'AI_API_KEY']);
+	}
 	if (!apiKey) {
 		return null;
 	}

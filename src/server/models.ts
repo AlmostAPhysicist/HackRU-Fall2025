@@ -19,7 +19,12 @@ async function readUsers(): Promise<UserRecord[]> {
 }
 
 async function writeUsers(users: UserRecord[]): Promise<void> {
-	await writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf-8');
+	try {
+		await writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf-8');
+	} catch (err) {
+		console.error('[models] Failed to write users file at', DATA_FILE.href, err);
+		throw err;
+	}
 }
 
 export async function findUserByEmail(email: string): Promise<UserRecord | undefined> {
