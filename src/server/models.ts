@@ -22,8 +22,9 @@ async function writeUsers(users: UserRecord[]): Promise<void> {
 	try {
 		await writeFile(DATA_FILE, JSON.stringify(users, null, 2), 'utf-8');
 	} catch (err) {
-		console.error('[models] Failed to write users file at', DATA_FILE.href, err);
-		throw err;
+		// In serverless or read-only environments (Netlify functions) writes may fail.
+		// Log the error and continue using in-memory state to avoid breaking the API with a 500.
+	console.warn('[models] Warning: failed to persist users to disk (running in read-only environment?). Changes will not be persisted across restarts.', DATA_FILE.href, err ? (err as any).message ?? err : err);
 	}
 }
 

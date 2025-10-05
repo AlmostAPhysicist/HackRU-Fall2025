@@ -799,10 +799,11 @@ const calendarTiles: CalendarTile[] = hasDashboard
         response.dataset.status = "pending";
         response.textContent = "Drafting guidance…";
 
-        setTimeout(() => {
+        // Compute the answer synchronously so any errors occur here and can be caught.
+        let answerHtml = '';
+        try {
           if (!question) {
-            response.dataset.status = "idle";
-            response.innerHTML = `<div class="chat-note">${escapeHtml(base || 'Share your question above to get actionable guidance.')}</div>`;
+            answerHtml = `<div class="chat-note">${escapeHtml(base || 'Share your question above to get actionable guidance.')}</div>`;
           } else {
             const lowered = question.toLowerCase();
             let focus = "balance your upcoming meals with produce-first plates.";
@@ -814,31 +815,66 @@ const calendarTiles: CalendarTile[] = hasDashboard
               focus = "plan pantry-first meals and reserve spend for targeted produce add-ons.";
             }
 
-            // Colorize a few negative/positive tokens
             const colorize = (text) => {
-              const negatives = ['waste', 'overbudget', 'over budget', 'expired', 'urgent', 'high waste risk', 'restock'];
-              const positives = ['healthy', 'on track', 'under budget', 'good', 'green', 'win'];
-              let out = escapeHtml(text);
-              negatives.forEach((tok) => {
-                const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
-                out = out.replace(re, (m) => `<span class="word--neg">${m}</span>`);
-              });
-              positives.forEach((tok) => {
-                const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
-                out = out.replace(re, (m) => `<span class="word--pos">${m}</span>`);
-              });
-              return out;
+              try {
+                const negatives = ['waste', 'overbudget', 'over budget', 'expired', 'urgent', 'high waste risk', 'restock'];
+                const positives = ['healthy', 'on track', 'under budget', 'good', 'green', 'win'];
+                let out = escapeHtml(text);
+                negatives.forEach((tok) => {
+                  const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+                  out = out.replace(re, (m) => `<span class="word--neg">${m}</span>`);
+                });
+                positives.forEach((tok) => {
+                  const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+                  out = out.replace(re, (m) => `<span class="word--pos">${m}</span>`);
+                });
+                return out;
+              } catch (innerErr) {
+                console.warn('[dietician] colorize failed', innerErr);
+                return escapeHtml(text);
+              }
             };
 
-            response.dataset.status = "success";
-              response.innerHTML = `<div class="chat-answer">${colorize(base ? `${base} ` : '')}Based on your question, ${colorize(focus)}</div>`;
+            answerHtml = `<div class="chat-answer">${colorize(base ? `${base} ` : '')}Based on your question, ${colorize(focus)}</div>`;
           }
+        } catch (err) {
+          console.error('[dietician] compute failed', err);
+          answerHtml = `<div class="chat-note">Unable to draft guidance — try again.</div>`;
+        }
 
-          if (submit instanceof HTMLButtonElement) {
-            submit.disabled = false;
-            delete submit.dataset.loading;
+        // Primary display: short delay for UX
+        const primaryTimer = setTimeout(() => {
+          try {
+            response.dataset.status = answerHtml.indexOf('chat-answer') >= 0 ? 'success' : 'idle';
+            response.innerHTML = answerHtml;
+          } catch (err) {
+            console.error('[dietician] primary render failed', err);
+            response.dataset.status = 'error';
+            response.textContent = 'Unable to display guidance.';
+          } finally {
+            if (submit instanceof HTMLButtonElement) {
+              submit.disabled = false;
+              delete submit.dataset.loading;
+            }
           }
-        }, 450);
+        }, 250);
+
+        // Safety fallback: force UI reset after a short timeout if primary didn't run
+        const fallbackTimer = setTimeout(() => {
+          if (response.dataset.status === 'pending') {
+            response.dataset.status = 'error';
+            response.textContent = 'Timed out generating guidance. Please try again.';
+            if (submit instanceof HTMLButtonElement) {
+              submit.disabled = false;
+              delete submit.dataset.loading;
+            }
+          }
+        }, 2500);
+
+        // Clear fallback once primary completes
+        setTimeout(() => {
+          clearTimeout(fallbackTimer);
+        }, 2600);
       });
     })();
 

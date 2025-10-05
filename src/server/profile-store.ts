@@ -27,7 +27,11 @@ async function readBuyerProfiles(): Promise<BuyerProfile[]> {
 
 async function writeBuyerProfiles(profiles: BuyerProfile[]): Promise<void> {
 	const document: BuyerProfileDocument = { profiles };
-	await writeFile(BUYER_FILE, JSON.stringify(document, null, 2), 'utf-8');
+	try {
+		await writeFile(BUYER_FILE, JSON.stringify(document, null, 2), 'utf-8');
+	} catch (err) {
+		console.warn('[profile-store] Warning: unable to persist buyer profiles (read-only environment?). Changes will not survive restarts.', BUYER_FILE.href, err ? (err as any).message ?? err : err);
+	}
 }
 
 async function readSellerProfiles(): Promise<SellerProfile[]> {
@@ -43,7 +47,11 @@ async function readSellerProfiles(): Promise<SellerProfile[]> {
 
 async function writeSellerProfiles(profiles: SellerProfile[]): Promise<void> {
 	const document: SellerProfileDocument = { profiles };
-	await writeFile(SELLER_FILE, JSON.stringify(document, null, 2), 'utf-8');
+	try {
+		await writeFile(SELLER_FILE, JSON.stringify(document, null, 2), 'utf-8');
+	} catch (err) {
+		console.warn('[profile-store] Warning: unable to persist seller profiles (read-only environment?). Changes will not survive restarts.', SELLER_FILE.href, err ? (err as any).message ?? err : err);
+	}
 }
 
 export async function getBuyerProfile(userId: string): Promise<BuyerProfile | undefined> {
