@@ -10,9 +10,10 @@
 	--color-primary-dark: #37a8c2;
 	--color-text: #f5f8fb;
 	--color-muted: #93a1b5;
-	--font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	--radius-base: 0.75rem;
-	--shadow-elevated: 0 18px 32px rgba(12, 25, 38, 0.35);
+	--font-sans: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--radius-base: 0.9rem;
+	--shadow-elevated: 0 22px 40px rgba(12, 25, 38, 0.4);
+	--base-font-size: 18px;
 }
 
 * {
@@ -25,6 +26,7 @@ body {
 	background: radial-gradient(circle at top, #142031, #06080c 65%);
 	color: var(--color-text);
 	line-height: 1.6;
+	font-size: var(--base-font-size);
 }
 
 a {
@@ -34,15 +36,15 @@ a {
 
 main {
 	display: grid;
-	gap: 2rem;
-	padding: 4rem clamp(1.5rem, 3vw, 4rem);
+	gap: 2.5rem;
+	padding: 5rem clamp(2rem, 3vw, 5rem);
 }
 
 section {
-	background: rgba(18, 27, 39, 0.75);
-	border: 1px solid rgba(102, 217, 237, 0.15);
-	border-radius: var(--radius-base);
-	padding: clamp(1.5rem, 3vw, 3rem);
+	background: rgba(18, 27, 39, 0.78);
+	border: 1px solid rgba(102, 217, 237, 0.12);
+	border-radius: calc(var(--radius-base) + 0.25rem);
+	padding: clamp(1.5rem, 3vw, 3.5rem);
 	box-shadow: var(--shadow-elevated);
 }
 

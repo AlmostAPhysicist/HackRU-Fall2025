@@ -62,6 +62,29 @@ const sellerAiConclusion = (() => {
   if ((inventoryRiskCounts['risk'] ?? 0) > 0) return `Monitor: some risk SKU(s) flagged — schedule replenishment and quick promos.`;
   return 'Inventory overall looks healthy — continue current cadence.';
 })();
+
+// Build revenue-over-time data: prefer metrics.salesPerformance if provided, else synthesize
+const revenueSeries: Array<{week:string, revenue:number}> = ((metrics as any).salesPerformance && Array.isArray((metrics as any).salesPerformance))
+  ? (metrics as any).salesPerformance
+  : (() => {
+      const base = (metrics.kpis && metrics.kpis.revenueWeek) ? metrics.kpis.revenueWeek : 42000;
+      const arr: Array<{week:string, revenue:number}> = [];
+      for (let i = 11; i >= 0; i--) {
+        const variance = Math.round((Math.sin(i / 2) * 0.08 + (Math.random() - 0.5) * 0.06) * base);
+        arr.push({ week: `W-${11 - i + 1}`, revenue: Math.max(0, base + variance) });
+      }
+      return arr;
+    })();
+
+// Normalize revenue series for SVG plotting
+const maxRevenue = Math.max(...revenueSeries.map((r: {week:string,revenue:number}) => r.revenue), 1);
+const svgPoints: Array<{x:number,y:number,label:string,value:number}> = revenueSeries.map((r: {week:string,revenue:number}, idx: number) => {
+  const x = (idx / (revenueSeries.length - 1)) * 100;
+  const y = 100 - (r.revenue / maxRevenue) * 100;
+  return { x, y, label: r.week, value: r.revenue };
+});
+const areaPath = svgPoints.map((p: {x:number,y:number,label:string,value:number}, i: number) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
+const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
 ---
 
 <MainLayout title="Seller Dashboard">
@@ -171,6 +194,35 @@ const sellerAiConclusion = (() => {
       <p class="ai-summary">{sellerAiSummary}</p>
       <p class="ai-note">Avg confidence <b>{Math.round(forecastConfidence * 100)}%</b>. Key items: <u>{topFocus}</u></p>
       <p class="ai-conclusion">{sellerAiConclusion}</p>
+    </div>
+
+    <!-- Revenue over time / profit-style area chart -->
+    <div class="revenue-chart">
+      <header><b>Revenue (last 12 weeks)</b> <span class="muted">trend and seasonality</span></header>
+      <div class="chart-area">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="area-svg">
+          <defs>
+            <linearGradient id="g-rev" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#7afcff" stop-opacity="0.9" />
+              <stop offset="100%" stop-color="#7afcff" stop-opacity="0.06" />
+            </linearGradient>
+            <linearGradient id="g-stroke" x1="0" x2="1">
+              <stop offset="0%" stop-color="#6ee7b7" />
+              <stop offset="100%" stop-color="#34d399" />
+            </linearGradient>
+          </defs>
+          <path d={areaFillPath} fill="url(#g-rev)" stroke="none" />
+          <path d={areaPath} fill="none" stroke="url(#g-stroke)" stroke-width="0.6" />
+          {svgPoints.map((p) => (
+            <circle cx={`${p.x}`} cy={`${p.y}`} r="0.9" fill="#fff" opacity="0.9"></circle>
+          ))}
+        </svg>
+        <div class="chart-legend">
+          {svgPoints.map((p) => (
+            <div class="legend-item" title={`${p.label} ${p.value}`}><span class="dot" style={`background: hsla(${Math.round((p.value/maxRevenue)*120)},78%,48%,0.9)`}></span><small>{p.label}</small></div>
+          ))}
+        </div>
+      </div>
     </div>
 
     <!-- Demand heatmap for household items -->
@@ -392,10 +444,18 @@ const sellerAiConclusion = (() => {
 
   /* Seller AI block */
   .seller-ai { padding:16px; border-radius:14px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); margin:14px 0; border:1px solid rgba(255,255,255,0.04); }
-  .seller-ai h3 { margin:0 0 6px 0; font-size:1rem; }
-  .ai-summary { font-size:1.125rem; font-weight:900; color:#fff; margin:6px 0; letter-spacing:0.01em; }
+  .seller-ai h3 { margin:0 0 6px 0; font-size:1.25rem; }
+  .ai-summary { font-size:1.5rem; font-weight:900; color:#fff; margin:6px 0; letter-spacing:0.01em; }
   .ai-note { color:var(--color-text-muted); margin-bottom:6px; }
   .ai-conclusion { font-size:1rem; font-weight:800; color: #ffb86b; }
+
+  .revenue-chart { margin-top:18px; padding:14px; border-radius:12px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); }
+  .revenue-chart header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .revenue-chart .chart-area { display:flex; gap:12px; align-items:center; }
+  .area-svg { width:420px; height:140px; }
+  .chart-legend { display:flex; gap:8px; flex-wrap:wrap; padding-left:12px; }
+  .chart-legend .legend-item { display:flex; gap:6px; align-items:center; font-size:0.7rem; opacity:0.9; }
+  .legend-item .dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
 
   /* Seller demand heatmap */
   .demand-heatmap { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
