@@ -13,6 +13,19 @@ Wakefern Marketplace helps households track what they already own, plan events a
 - Make shopping frictionless: let buyers create smart shopping lists, shop for pickup/delivery, and find store aisle & expiry-aware recommendations.
 - Drive seller revenue with promotions and targeted marketplace placement informed by buyer plans.
 
+## Environment setup
+
+To enable the Gemini-powered insights and avoid falling back to canned data:
+
+1. Copy `.env.example` to `.env` and replace the placeholder value with your real key.
+	```powershell
+	Copy-Item .env.example .env
+	```
+2. Edit `.env` and set `GEMINI_API_KEY` to your Gemini API key (keep the file out of version control).
+3. Optionally adjust `GEMINI_MODEL`, temperature, or token settings in the same file if you want to experiment with different configurations.
+
+The server reads `GEMINI_API_KEY` (or `AI_API_KEY`) at runtime. If it is missing, a warning is logged and the dashboards fall back to heuristic copy.
+
 ## Actors & roles
 
 - Buyer: a household member, event planner, or community user who manages pantry inventory, plans meals/events, and shops via the marketplace.

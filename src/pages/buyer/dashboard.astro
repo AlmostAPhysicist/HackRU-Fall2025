@@ -8,16 +8,26 @@ export const prerender = false;
 const userId = Astro.url.searchParams.get("user") ?? "";
 const dashboard: BuyerDashboardData | null = userId ? await buildBuyerDashboard(userId) : null;
 const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboard` : "Buyer Dashboard";
+const leadText = dashboard
+  ? dashboard.ai.summary[0]?.detail ?? "Personalized recommendations tuned to your pantry and local offers."
+  : "Sign in to unlock personalized pantry insights, marketplace bundles, and AI-powered meal plans.";
+const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : ""}`;
 ---
 
 <MainLayout title={pageTitle}>
   <section class="page-intro">
     <h1>{dashboard ? `Hi ${dashboard.profile.displayName}, here’s your marketplace pulse` : "Buyer dashboard"}</h1>
-    <p class="lead">
-      {dashboard
-        ? dashboard.ai.summary
-        : "Sign in to unlock personalized pantry insights, marketplace bundles, and AI-powered meal plans."}
-    </p>
+    <p class="lead">{leadText}</p>
+    {dashboard && dashboard.ai.summary.length > 0 && (
+      <ul class="insight-list">
+        {dashboard.ai.summary.map((item) => (
+          <li class={insightClass(item.mood)}>
+            <span class="insight__keyword">{item.keyword}</span>
+            <span class="insight__detail">{item.detail}</span>
+          </li>
+        ))}
+      </ul>
+    )}
   </section>
 
   {!userId ? (
@@ -77,9 +87,12 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
           <h2>AI game plan</h2>
           <p>Powered by pantry, purchasing, and nearby offers.</p>
         </header>
-        <ul>
+        <ul class="insight-stack">
           {dashboard.ai.recommendedActions.map((item) => (
-            <li>{item}</li>
+            <li class={insightClass(item.mood)}>
+              <span class="insight__keyword">{item.keyword}</span>
+              <span class="insight__detail">{item.detail}</span>
+            </li>
           ))}
         </ul>
       </section>
@@ -167,11 +180,27 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
           {dashboard.ai.mealPlan.map((day) => (
             <article>
               <h3>{day.day}</h3>
-              <ul>
+              <ul class="insight-stack">
                 {day.meals.map((meal) => (
-                  <li>{meal}</li>
+                  <li class={insightClass(meal.mood)}>
+                    <span class="insight__keyword">{meal.keyword}</span>
+                    <span class="insight__detail">{meal.detail}</span>
+                  </li>
                 ))}
               </ul>
+              {day.addOns && day.addOns.length > 0 && (
+                <div class="add-ons">
+                  <h4>Add-ons</h4>
+                  <ul class="insight-stack">
+                    {day.addOns.map((addOn) => (
+                      <li class={insightClass(addOn.mood)}>
+                        <span class="insight__keyword">{addOn.keyword}</span>
+                        <span class="insight__detail">{addOn.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -182,12 +211,18 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
           <h2>Daily wellness cadence</h2>
           <p>Small shifts to stay aligned with your goals.</p>
         </header>
-        <ul>
+        <ul class="diet-list">
           {dashboard.ai.dietSchedule.map((entry) => (
             <li>
               <strong>{entry.day}</strong>
-              <span>{entry.focus}</span>
-              <p>{entry.tip}</p>
+              <div class={insightClass(entry.focus.mood)}>
+                <span class="insight__keyword">{entry.focus.keyword}</span>
+                <span class="insight__detail">{entry.focus.detail}</span>
+              </div>
+              <div class={insightClass(entry.tip.mood)}>
+                <span class="insight__keyword">{entry.tip.keyword}</span>
+                <span class="insight__detail">{entry.tip.detail}</span>
+              </div>
             </li>
           ))}
         </ul>
@@ -254,7 +289,10 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
                 </li>
               ))}
               {dashboard.ai.dealHighlights.map((highlight) => (
-                <li class="highlight">{highlight}</li>
+                <li class={`highlight ${insightClass(highlight.mood)}`}>
+                  <span class="insight__keyword">{highlight.keyword}</span>
+                  <span class="insight__detail">{highlight.detail}</span>
+                </li>
               ))}
             </>
           )}
@@ -385,7 +423,10 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
 
   .actions-panel ul {
     margin: 0;
-    padding-left: var(--space-lg);
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-sm);
     color: var(--color-text);
   }
 
@@ -469,35 +510,59 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
   }
 
   .plan-grid article {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
     background: var(--surface-raised);
-    padding: var(--space-lg);
     border-radius: var(--radius-lg);
+    padding: var(--space-md);
     box-shadow: var(--shadow-sm);
   }
 
-  .plan-grid ul {
-    padding-left: var(--space-lg);
+  .plan-grid h3 {
+    margin: 0;
   }
 
-  .diet-schedule ul {
+  .add-ons {
+    border-top: 1px solid var(--surface-subtle);
+    padding-top: var(--space-sm);
+  }
+
+  .add-ons h4 {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .diet-list {
     list-style: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
     display: grid;
     gap: var(--space-md);
   }
 
-  .diet-schedule li {
+  .diet-list li {
     background: var(--surface-raised);
-    padding: var(--space-lg);
     border-radius: var(--radius-lg);
+    padding: var(--space-md);
     box-shadow: var(--shadow-sm);
     display: grid;
-    gap: var(--space-2xs);
+    gap: var(--space-sm);
   }
 
-  .diet-schedule li strong {
-    font-size: 1.1rem;
+  .diet-list strong {
+    font-size: 1rem;
+  }
+
+  .diet-list .insight {
+    background: transparent;
+    border-radius: var(--radius-md);
+    box-shadow: none;
+    border-left-width: 3px;
+    padding: var(--space-xs) var(--space-sm);
   }
 
   .events ul {
@@ -592,6 +657,58 @@ const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboar
   .offers li.highlight {
     border: 1px dashed rgba(102, 217, 237, 0.4);
     background: rgba(102, 217, 237, 0.08);
+  }
+
+  .insight-list,
+  .insight-stack {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .insight-list {
+    margin: var(--space-md) 0 0;
+  }
+
+  .insight {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    border-left: 4px solid var(--color-primary-soft, rgba(42, 116, 255, 0.35));
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .insight__keyword {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  .insight__detail {
+    font-size: 0.95rem;
+    color: var(--color-text);
+  }
+
+  .insight--green {
+    border-left-color: #1c9c7c;
+    background: rgba(28, 156, 124, 0.12);
+  }
+
+  .insight--amber {
+    border-left-color: #d98b23;
+    background: rgba(217, 139, 35, 0.12);
+  }
+
+  .insight--red {
+    border-left-color: #d64550;
+    background: rgba(214, 69, 80, 0.12);
   }
 
   @media (max-width: 640px) {

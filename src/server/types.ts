@@ -22,6 +22,14 @@ export interface UserRecord extends LoginPayload {
 
 export type InventoryStatus = 'healthy' | 'use-soon' | 'restock' | 'overflow';
 
+export type MoodColor = 'green' | 'amber' | 'red';
+
+export interface HighlightedInsight {
+	keyword: string;
+	mood: MoodColor;
+	detail: string;
+}
+
 export interface BuyerInventoryItem {
 	id: string;
 	name: string;
@@ -108,22 +116,23 @@ export interface StoreOffer {
 
 export interface MealPlanSuggestion {
 	day: string;
-	meals: string[];
+	meals: HighlightedInsight[];
+	addOns?: HighlightedInsight[];
 }
 
 export interface DietScheduleSuggestion {
 	day: string;
-	focus: string;
-	tip: string;
+	focus: HighlightedInsight;
+	tip: HighlightedInsight;
 }
 
 export interface BuyerAiInsights {
-	summary: string;
-	recommendedActions: string[];
-	inventorySuggestions: string[];
+	summary: HighlightedInsight[];
+	recommendedActions: HighlightedInsight[];
+	inventorySuggestions: HighlightedInsight[];
 	mealPlan: MealPlanSuggestion[];
 	dietSchedule: DietScheduleSuggestion[];
-	dealHighlights: string[];
+	dealHighlights: HighlightedInsight[];
 }
 
 export interface BuyerDashboardMetrics {
@@ -204,10 +213,10 @@ export interface SellerProfile {
 }
 
 export interface SellerAiInsights {
-	summary: string;
-	recommendedActions: string[];
-	bundleIdeas: string[];
-	restockAlerts: string[];
+	summary: HighlightedInsight[];
+	recommendedActions: HighlightedInsight[];
+	bundleIdeas: HighlightedInsight[];
+	restockAlerts: HighlightedInsight[];
 }
 
 export interface SellerDashboardMetrics {

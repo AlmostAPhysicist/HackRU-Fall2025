@@ -12,6 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# local AI test artifacts
+gemini-output.txt
+
 
 # environment variables
 .env
