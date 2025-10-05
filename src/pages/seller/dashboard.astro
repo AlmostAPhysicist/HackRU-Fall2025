@@ -98,90 +98,48 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
     <script type="text/javascript">
       // unused at runtime; kept for clarity
     </script>
-    <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.revenueChangePct))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
-      <h2><b>Revenue (7d)</b></h2>
-      <div class="kpi-tile__circle-bg">
+    <article class={`kpi-tile`} style={`background: ${`hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.revenueChangePct))*1.2)},78%,48%,0.14)`}; border:1px solid rgba(255,255,255,0.04)`}>
+      <div class="kpi-tile__circle-bg" style={`background: rgba(255,255,255,0.03);`}>
         <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*Math.max(0,Math.min(100,metrics.kpis.revenueChangePct))/100},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(Math.max(0,Math.min(100,metrics.kpis.revenueChangePct)) * 1.26)} /></svg>
         <span class="kpi-tile__value"><b>${metrics.kpis.revenueWeek.toLocaleString()}</b></span>
       </div>
-      <p class="kpi-sub"><u>{metrics.kpis.revenueChangePct}% vs. last week</u></p>
+      <div class="kpi-tile__content">
+        <h2><b>Revenue (7d)</b></h2>
+        <p class="kpi-sub"><u>{metrics.kpis.revenueChangePct}% vs. last week</u></p>
+      </div>
     </article>
-  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.sellThroughRate*100))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
-      <h2><b>Sell-through rate</b></h2>
-      <div class="kpi-tile__circle-bg">
+  <article class={`kpi-tile`} style={`background: ${`hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.sellThroughRate*100))*1.2)},78%,48%,0.14)`}; border:1px solid rgba(255,255,255,0.04)`}>
+      <div class="kpi-tile__circle-bg" style={`background: rgba(255,255,255,0.03);`}>
         <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*metrics.kpis.sellThroughRate},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(metrics.kpis.sellThroughRate * 100 * 1.26)} /></svg>
         <span class="kpi-tile__value"><b>{Math.round(metrics.kpis.sellThroughRate * 100)}<span class="unit">%</span></b></span>
       </div>
-      <p class="kpi-sub">High velocity across seasonal SKUs</p>
+      <div class="kpi-tile__content">
+        <h2><b>Sell-through rate</b></h2>
+        <p class="kpi-sub">High velocity across seasonal SKUs</p>
+      </div>
     </article>
-  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.spoilageAvoidedLb))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
-      <h2><b>Spoilage avoided</b></h2>
-      <div class="kpi-tile__circle-bg">
+  <article class={`kpi-tile`} style={`background: ${`hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.spoilageAvoidedLb))*1.2)},78%,48%,0.14)`}; border:1px solid rgba(255,255,255,0.04)`}>
+      <div class="kpi-tile__circle-bg" style={`background: rgba(255,255,255,0.03);`}>
         <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*Math.min(1,metrics.kpis.spoilageAvoidedLb/100)},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(Math.min(100,metrics.kpis.spoilageAvoidedLb) * 1.26)} /></svg>
         <span class="kpi-tile__value"><b>{metrics.kpis.spoilageAvoidedLb}<span class="unit">lb</span></b></span>
       </div>
-      <p class="kpi-sub">Thanks to proactive alerts + donations</p>
+      <div class="kpi-tile__content">
+        <h2><b>Spoilage avoided</b></h2>
+        <p class="kpi-sub">Thanks to proactive alerts + donations</p>
+      </div>
     </article>
-  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.promotionLiftPct))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
-      <h2><b>Promo lift</b></h2>
-      <div class="kpi-tile__circle-bg">
+  <article class={`kpi-tile`} style={`background: ${`hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.promotionLiftPct))*1.2)},78%,48%,0.14)`}; border:1px solid rgba(255,255,255,0.04)`}>
+      <div class="kpi-tile__circle-bg" style={`background: rgba(255,255,255,0.03);`}>
         <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*metrics.kpis.promotionLiftPct/100},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(metrics.kpis.promotionLiftPct * 1.26)} /></svg>
         <span class="kpi-tile__value"><b>{metrics.kpis.promotionLiftPct}<span class="unit">%</span></b></span>
       </div>
-      <p class="kpi-sub">Last 3 featured campaigns</p>
+      <div class="kpi-tile__content">
+        <h2><b>Promo lift</b></h2>
+        <p class="kpi-sub">Last 3 featured campaigns</p>
+      </div>
     </article>
   </section>
-  <!-- MARKET DEMOGRAPHICS moved up for seller priority -->
-  <section class="demographics" aria-labelledby="demographics-heading">
-    <header>
-      <h2 id="demographics-heading">Marketplace Demographics</h2>
-      <p>Top zips, household mix, and spending bands near your store.</p>
-    </header>
-    <div class="demographics-top">
-      <div class="demographics-summary">
-        <div><b>Top Zip</b><div class="muted">08854</div></div>
-        <div><b>Household size (median)</b><div class="muted">3</div></div>
-        <div><b>Avg. basket</b><div class="muted">$42.10</div></div>
-        <div><b>Fav category</b><div class="muted">Produce</div></div>
-      </div>
-      <div class="demographics-charts">
-        <div class="chart small">
-          <header><Icon name="box" /> <b>Demand by item</b></header>
-          <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
-            {(() => {
-              const data: number[] = (metrics as any).demandByItem || [24, 42, 31, 12, 54];
-              const max = Math.max(...data);
-              return data.map((d: number, idx: number) => {
-                const w = 28;
-                const x = idx * (w + 8) + 6;
-                const h = Math.round((d / max) * 44);
-                const y = 52 - h;
-                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.26)`;
-                return <rect x={x} y={y} width={w} height={h} rx="3" style={`fill:${color};`} />;
-              });
-            })()}
-          </svg>
-        </div>
-        <div class="chart small">
-          <header><Icon name="calendar" /> <b>Spending bands</b></header>
-          <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
-            {(() => {
-              const data: number[] = (metrics as any).spendBands || [12, 28, 20, 8, 32];
-              const max = Math.max(...data);
-              return data.map((d: number, idx: number) => {
-                const w = 30;
-                const x = idx * (w + 6) + 6;
-                const h = Math.round((d / max) * 44);
-                const y = 52 - h;
-                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.2)`;
-                return <rect x={x} y={y} width={w} height={h} rx="3" style={`fill:${color};`} />;
-              });
-            })()}
-          </svg>
-        </div>
-      </div>
-    </div>
-  </section>
+  
 
   <section class="alerts">
     <header>
@@ -297,6 +255,41 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
     })();
   </script>
 
+  <script is:inline>
+    (function(){
+      // tooltip for mini bar charts (plain JS)
+      var tip = null;
+      function ensureTip(){
+        if (!tip){
+          tip = document.createElement('div');
+          tip.className = 'mini-tooltip';
+          document.body.appendChild(tip);
+        }
+        return tip;
+      }
+      function attachMiniBarTooltips(){
+        var groups = document.querySelectorAll('.mini-bar .bar-group');
+        for(var i=0;i<groups.length;i++){
+          (function(g){
+            var label = g.getAttribute('data-label') || '';
+            var value = g.getAttribute('data-value') || '';
+            g.addEventListener('mouseenter', function(){
+              var t = ensureTip(); t.textContent = label + ': ' + value; t.style.display = 'block';
+            });
+            g.addEventListener('mousemove', function(ev){
+              var t = ensureTip(); t.style.left = (ev.pageX) + 'px'; t.style.top = (ev.pageY - 12) + 'px';
+            });
+            g.addEventListener('mouseleave', function(){ if (tip) tip.style.display='none'; });
+            g.addEventListener('click', function(){
+              var toast = document.createElement('div'); toast.className='quick-toast'; toast.textContent = 'Selected: ' + label + ' (' + value + ')'; document.body.appendChild(toast); setTimeout(function(){ toast.remove(); }, 1600);
+            });
+          })(groups[i]);
+        }
+      }
+      document.addEventListener('DOMContentLoaded', attachMiniBarTooltips);
+    })();
+  </script>
+
   <section class="inventory">
     <header>
       <h2>Inventory Health Check</h2>
@@ -404,12 +397,73 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
   <section class="demographics" aria-labelledby="demographics-heading">
     <header>
       <h2 id="demographics-heading">Marketplace Demographics & Statistics</h2>
+      <p class="muted">Top zips, household mix, and spending bands near your store. Full details at the bottom.</p>
     </header>
-    <div class="demographics-tile-grid">
-      <article class="demographics-tile"><b>Top Buyer Zip:</b> <u>08854</u></article>
-      <article class="demographics-tile"><b>Most Common Age:</b> <u>28</u></article>
-      <article class="demographics-tile"><b>Avg. Basket:</b> <u>$42.10</u></article>
-      <article class="demographics-tile"><b>Most Popular SKU:</b> <u>Eggs</u></article>
+    <div class="demographics-bottom">
+      <div class="demographics-summary-row">
+        <article class="demographics-tile"><b>Top Buyer Zip:</b> <u>08854</u></article>
+        <article class="demographics-tile"><b>Most Common Age:</b> <u>28</u></article>
+        <article class="demographics-tile"><b>Avg. Basket:</b> <u>$42.10</u></article>
+        <article class="demographics-tile"><b>Most Popular SKU:</b> <u>Eggs</u></article>
+      </div>
+      <div class="demographics-charts-bottom">
+        <div class="chart full">
+          <header><Icon name="box" /> <b>Demand by item</b></header>
+          <svg viewBox="0 0 100 60" class="mini-bar scaled" preserveAspectRatio="none">
+            {(() => {
+              const raw = (metrics as any).demandByItem || [24,42,31,12,54];
+              const labels = (metrics as any).demandByItemLabels || raw.map((_: any, i: number)=>`Item ${i+1}`);
+              const data = raw.slice(0, Math.min(raw.length, 6));
+              const n = data.length || 1;
+              const padding = 4; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
+              const w = Math.max(10, avail / n);
+              const max = Math.max(...data, 1);
+              return data.map((d: number, i: number) => {
+                const x = padding + i * (w + gap);
+                const h = (d / max) * 44;
+                const y = 56 - h;
+                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.34)`;
+                const label = labels[i] || `Item ${i+1}`;
+                return (
+                  <g class="bar-group" data-label={label} data-value={d}>
+                    <title>{label}: {d}</title>
+                    <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
+                    <text x={x + w/2} y={58} font-size="3.4" text-anchor="middle" fill="#cfeff6">{label}</text>
+                  </g>
+                );
+              });
+            })()}
+          </svg>
+        </div>
+        <div class="chart full">
+          <header><Icon name="calendar" /> <b>Spending bands</b></header>
+          <svg viewBox="0 0 100 60" class="mini-bar scaled" preserveAspectRatio="none">
+            {(() => {
+              const raw = (metrics as any).spendBands || [12,28,20,8,32];
+              const labels = (metrics as any).spendBandLabels || raw.map((_: any, i: number)=>`$${i*10}-$${i*10+9}`);
+              const data = raw.slice(0, Math.min(raw.length, 6));
+              const n = data.length || 1;
+              const padding = 4; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
+              const w = Math.max(10, avail / n);
+              const max = Math.max(...data, 1);
+              return data.map((d: number, i: number) => {
+                const x = padding + i * (w + gap);
+                const h = (d / max) * 44;
+                const y = 56 - h;
+                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.28)`;
+                const label = labels[i] || `Band ${i+1}`;
+                return (
+                  <g class="bar-group" data-label={label} data-value={d}>
+                    <title>{label}: {d}</title>
+                    <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
+                    <text x={x + w/2} y={58} font-size="3.2" text-anchor="middle" fill="#cfeff6">{label}</text>
+                  </g>
+                );
+              });
+            })()}
+          </svg>
+        </div>
+      </div>
     </div>
   </section>
 </MainLayout>
@@ -422,9 +476,15 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
 
   .kpi-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:var(--gap); }
   .kpi-tile { padding:var(--tile-padding); border-radius:var(--tile-radius); display:flex; gap:16px; align-items:center; background: rgba(255,255,255,0.02); box-shadow:0 10px 28px rgba(0,0,0,0.32); border:1px solid rgba(255,255,255,0.04); cursor:pointer; transition:transform 220ms, box-shadow 220ms; }
-  .kpi-tile__circle-bg { width:var(--gauge-size); height:var(--gauge-size); position:relative; border-radius:999px; display:flex; align-items:center; justify-content:center; }
-  .kpi-tile__gauge { width:100%; height:100%; transform:rotate(-90deg); position:absolute; left:0; top:0; }
-  .kpi-tile__value { font-weight:900; color:#fff; font-size:1.05rem; }
+  /* Use buyer-style circular gauge: part of the flex layout, with subtle blur */
+  .kpi-tile { position:relative; overflow:visible; }
+  .kpi-tile__circle-bg { width: calc(var(--gauge-size) + 8px); height: calc(var(--gauge-size) + 8px); position: relative; flex: 0 0 calc(var(--gauge-size) + 8px); display:flex; align-items:center; justify-content:center; border-radius:50%; backdrop-filter: blur(4px); }
+  .kpi-tile__gauge { width: 100%; height: 100%; transform: rotate(-90deg); position:absolute; left:0; top:0; }
+  .kpi-tile__gauge circle { transition: stroke-dashoffset 400ms ease; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+  .kpi-tile__value { position: relative; z-index:2; font-size:18px; font-weight:700; color: #fff; text-align:center; }
+  .kpi-tile__value { font-size:20px; }
+  .kpi-tile > * { position:relative; z-index:1; }
+  .kpi-tile__content { flex:1; min-width:0; }
 
   .alert-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:var(--gap); }
   .alert-grid article { padding:16px; border-radius:12px; box-shadow:0 8px 18px rgba(0,0,0,0.28); color:#fff; }
@@ -457,6 +517,13 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
   .chart-legend .legend-item { display:flex; gap:6px; align-items:center; font-size:0.7rem; opacity:0.9; }
   .legend-item .dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
 
+  /* mini-bar interactivity */
+  .mini-bar .bar { transition: transform 160ms ease, opacity 160ms ease; cursor:pointer; }
+  .mini-bar .bar-group:hover .bar { transform: translateY(-4px); opacity:0.95; }
+  .mini-bar .bar-group:active .bar { transform: translateY(-2px) scale(0.99); }
+  .mini-bar { overflow:visible; }
+  .mini-tooltip { position:fixed; background:#0b111a; color:#fff; padding:8px 10px; border-radius:8px; font-size:0.85rem; box-shadow:0 8px 18px rgba(0,0,0,0.6); pointer-events:none; z-index:9999; transform:translate(-50%, -110%); }
+
   /* Seller demand heatmap */
   .demand-heatmap { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   .demand-heatmap .heatmap-row { display:flex; gap:8px; }
@@ -473,7 +540,7 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
 
   /* Buttons and CTA styles */
   .cta { padding:10px 14px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); color:#fff; font-weight:800; cursor:pointer; }
-  .cta.secondary { background: transparent; border:1px dashed rgba(255,255,255,0.06); }
+  .secondary { padding:8px 12px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; font-weight:700; cursor:pointer; }
 
   /* Quick toast */
   .quick-toast { position:fixed; right:18px; bottom:18px; background:rgba(0,0,0,0.8); color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 8px 18px rgba(0,0,0,0.5); z-index:9999; }
