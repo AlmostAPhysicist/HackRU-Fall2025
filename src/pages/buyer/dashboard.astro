@@ -1,33 +1,306 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import Icon from "../../components/ui/Icon.astro";
 import { buildBuyerDashboard } from "../../server/dashboard-service";
-import type { BuyerDashboardData } from "../../server/types";
+import type { BuyerDashboardData, BuyerEventPlan, BuyerKpiMetric } from "../../server/types";
 
 export const prerender = false;
 
 const userId = Astro.url.searchParams.get("user") ?? "";
 const dashboard: BuyerDashboardData | null = userId ? await buildBuyerDashboard(userId) : null;
-const pageTitle = dashboard ? `${dashboard.profile.displayName}'s Buyer Dashboard` : "Buyer Dashboard";
-const leadText = dashboard
-  ? dashboard.ai.summary[0]?.detail ?? "Personalized recommendations tuned to your pantry and local offers."
+const hasDashboard = Boolean(dashboard);
+
+const pageTitle = hasDashboard ? `${dashboard!.profile.displayName}'s Buyer Dashboard` : "Buyer Dashboard";
+const heroTitle = hasDashboard ? `Hi ${dashboard!.profile.displayName}, here’s your marketplace pulse` : "Buyer dashboard";
+const heroSummary = hasDashboard ? dashboard!.ai.heroSummary : "Personalized recommendations tuned to your pantry and local offers.";
+const overviewCommentary = hasDashboard ? dashboard!.ai.overviewCommentary : "";
+const leadText = hasDashboard
+  ? "Your AI assistant refreshed budgets, pantry status, and nearby offers."
   : "Sign in to unlock personalized pantry insights, marketplace bundles, and AI-powered meal plans.";
-const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : ""}`;
+
+const kpiCallouts = hasDashboard ? dashboard!.ai.kpiCallouts : [];
+const recommendations = hasDashboard ? dashboard!.ai.recommendations : [];
+const inventoryAnnotations = hasDashboard ? dashboard!.ai.inventoryAnnotations : [];
+const inventorySuggestions = hasDashboard ? dashboard!.ai.inventorySuggestions : [];
+const pantryNutrition = hasDashboard ? dashboard!.ai.pantryNutrition : null;
+const offers = hasDashboard ? dashboard!.offers : [];
+const shoppingFocus = hasDashboard ? dashboard!.shoppingFocus : [];
+const inventoryItems = hasDashboard ? dashboard!.profile.inventory : [];
+const metrics = hasDashboard ? dashboard!.metrics : null;
+const events = hasDashboard ? dashboard!.profile.events : [];
+const emptyInventory = hasDashboard ? dashboard!.emptyInventory : true;
+const weeklyBudget = hasDashboard ? dashboard!.profile.budgetPerWeek : 0;
+const eventCount = events.length;
+
+const uniqueCategories = hasDashboard ? new Set(inventoryItems.map((item) => item.category)) : new Set<string>();
+const inventoryHeadline = !hasDashboard
+  ? ""
+  : emptyInventory
+    ? "No items logged yet. Add what’s in your fridge or pantry below."
+    : `Tracking ${inventoryItems.length} items across ${uniqueCategories.size} categories.`;
+
+const statusCounts = hasDashboard
+  ? inventoryItems.reduce(
+      (acc, item) => {
+        acc[item.status] = (acc[item.status] ?? 0) + 1;
+        return acc;
+      },
+      { healthy: 0, "use-soon": 0, restock: 0, overflow: 0 } as Record<string, number>
+    )
+  : { healthy: 0, "use-soon": 0, restock: 0, overflow: 0 };
+
+const statusOrder = ["use-soon", "restock", "healthy", "overflow"] as const;
+const statusLabels: Record<string, string> = {
+  healthy: "Healthy",
+  "use-soon": "Use Soon",
+  restock: "Restock Soon",
+  overflow: "Overflow",
+};
+
+const moodClass = (mood?: string) => (mood ? ` insight--${mood}` : "");
+const insightClass = (mood?: string) => `insight${moodClass(mood)}`;
+
+const metricDisplay: Array<{
+  id: BuyerKpiMetric;
+  label: string;
+  value: number;
+  suffix: string;
+  helper: string;
+}> = metrics
+  ? [
+      { id: "wasteRisk", label: "Waste risk", value: metrics.wasteRisk, suffix: "%", helper: "Lower is better" },
+      { id: "pantryHealth", label: "Pantry health", value: metrics.pantryHealth, suffix: "%", helper: "Stock balance" },
+      {
+        id: "budgetHealth",
+        label: "Budget health",
+        value: metrics.budgetHealth,
+        suffix: "%",
+        helper: `Weekly budget $${weeklyBudget}`,
+      },
+      {
+        id: "eventReadiness",
+        label: "Event readiness",
+        value: metrics.eventReadiness,
+        suffix: "%",
+        helper: `${eventCount} upcoming plan${eventCount === 1 ? "" : "s"}`,
+      },
+    ]
+  : [];
+
+const recentSpend = (dashboard?.profile.purchases ?? [])
+  .slice(0, 4)
+  .reduce((sum, purchase) => sum + purchase.total, 0);
+const budgetDelta = weeklyBudget - recentSpend;
+
+const sortedEvents = events.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+const moodFromValue = (value: number) => {
+  if (value >= 75) return "green";
+  if (value >= 45) return "amber";
+  return "red";
+};
+
+// Map 0-100 score to hue between red (0) -> amber (60) -> green (120)
+const hueFromScore = (score: number) => {
+  const s = Math.max(0, Math.min(100, score));
+  return Math.round(s * 1.2); // 0 -> 0, 50 -> 60, 100 -> 120
+};
+
+const tileColorFromScore = (score: number, alpha = 0.16) => {
+  const hue = hueFromScore(score);
+  return `hsla(${hue}, 78%, 48%, ${alpha})`;
+};
+
+const moodToScore = (mood: string | undefined) => {
+  if (mood === 'green') return 88;
+  if (mood === 'amber') return 52;
+  return 18;
+};
+
+const calloutByMetric = new Map(kpiCallouts.map((callout) => [callout.metric, callout]));
+
+const expiringSoon = inventoryItems
+  .filter((item) => item.status === "use-soon")
+  .sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+const restockSoon = inventoryItems.filter((item) => item.status === "restock");
+
+const commentaryTiles = hasDashboard
+  ? metricDisplay.map((metric, index) => {
+      const callout = calloutByMetric.get(metric.id as typeof metric.id) ?? kpiCallouts[index] ?? null;
+      const mood = callout?.mood ?? moodFromValue(metric.value);
+      const cappedValue = Math.max(0, Math.min(100, metric.value));
+
+      let headline = callout?.headline ?? metric.label;
+      let detail = callout?.detail ?? metric.helper;
+      let helper = metric.helper;
+
+      if (metric.id === "pantryHealth") {
+        headline = "Pantry load";
+        detail = `${inventoryItems.length} tracked item${inventoryItems.length === 1 ? "" : "s"} • ${expiringSoon.length} use-soon • ${restockSoon.length} to restock.`;
+        helper = inventoryHeadline;
+      } else if (metric.id === "wasteRisk") {
+        const urgencyList = expiringSoon.slice(0, 2).map((item) => `${item.name} (${item.expirationDate ?? "soon"})`);
+        if (urgencyList.length > 0) {
+          headline = "Waste risk";
+          detail = `High waste risk: ${urgencyList.join(", ")} need attention first.`;
+        }
+        helper = "Use-now priority";
+      } else if (metric.id === "budgetHealth") {
+        const delta = Math.abs(budgetDelta).toFixed(2);
+        headline = "Budget health";
+        detail = budgetDelta >= 0
+          ? `Tracking under budget with $${delta} to reserve for strategic produce or proteins.`
+          : `Over budget by $${delta}. Dial back extras to stay aligned.`;
+        helper = `Latest spend window $${recentSpend.toFixed(2)}`;
+      } else if (metric.id === "eventReadiness") {
+        const outstanding = sortedEvents.reduce(
+          (count, event) => count + event.shoppingList.filter((item) => item.status !== "covered").length,
+          0
+        );
+        headline = "Event readiness";
+        detail = `${eventCount} upcoming plan${eventCount === 1 ? "" : "s"}; ${outstanding} shopping task${outstanding === 1 ? "" : "s"} outstanding.`;
+        if (eventCount > 0) {
+          const nextEvent = sortedEvents[0];
+          const nextItems = nextEvent?.shoppingList.filter((item) => item.status !== "covered");
+          helper =
+            nextItems && nextItems.length > 0
+              ? `Next: ${nextEvent.name} — cover ${nextItems.map((item) => `${item.name} • ${item.quantity} ${item.unit}`).join(", ")}`
+              : `Next: ${nextEvent?.name ?? ""} is on track.`;
+        }
+      }
+
+      return {
+        ...metric,
+        headline,
+        detail,
+        helper,
+        mood,
+        value: cappedValue,
+      };
+    })
+  : [];
+
+const nutrientHeatmap = pantryNutrition
+  ? (() => {
+      const buckets = [
+        { id: "protein", label: "Protein balance" },
+        { id: "produce", label: "Produce & fiber" },
+        { id: "healthy-fats", label: "Healthy fats" },
+        { id: "whole-grains", label: "Whole grains" },
+        { id: "hydration", label: "Hydration & electrolytes" },
+      ];
+
+      const missingEntries = pantryNutrition.missingNutrients.map((note) => note.toLowerCase());
+
+      return buckets.map((bucket) => {
+        const matchMissingIndex = pantryNutrition.missingNutrients.findIndex((note) =>
+          note.toLowerCase().includes(bucket.id.split("-").join(" "))
+        );
+        const matchingAddition = pantryNutrition.recommendedAdditions.find((addition) => {
+          const haystack = `${addition.item} ${addition.reason}`.toLowerCase();
+          return haystack.includes(bucket.id.split("-").join(" "));
+        });
+
+        let score = 82;
+        if (matchMissingIndex >= 0) {
+          score = 36;
+        } else if (matchingAddition?.mood === "amber") {
+          score = 58;
+        } else if (matchingAddition?.mood === "red") {
+          score = 32;
+        } else if (!matchingAddition) {
+          score = 88;
+        }
+
+        const mood = moodFromValue(score);
+        const detail =
+          matchMissingIndex >= 0
+            ? pantryNutrition.missingNutrients[matchMissingIndex]
+            : matchingAddition?.reason ?? "Strong coverage — keep rotation steady.";
+
+        return {
+          ...bucket,
+          score,
+          mood,
+          detail,
+        };
+      });
+    })()
+  : [];
+
+// AI conclusion for buyer based on pantry nutrition and expiring items
+const buyerAiConclusion = (() => {
+  const urgent = expiringSoon.slice(0,3).map(i => i.name).join(', ');
+  if (expiringSoon.length > 2) return `Focus: Use ${urgent} this week to avoid waste.`;
+  if (pantryNutrition && pantryNutrition.missingNutrients.length > 1) return `Nutrition: consider adding ${pantryNutrition.missingNutrients.slice(0,2).join(' and ')}.`;
+  return 'Pantry and budget look balanced for the week.';
+})();
+
+type CalendarTile = {
+  id: string;
+  dayLabel: string;
+  dateLabel: string;
+  name: string;
+  outstanding: Array<BuyerEventPlan["shoppingList"][number]>;
+  status: BuyerEventPlan["status"] | "open";
+};
+
+const calendarTiles: CalendarTile[] = hasDashboard
+  ? (() => {
+      const tiles: CalendarTile[] = sortedEvents.slice(0, 7).map((event) => {
+        const dateObj = new Date(event.date);
+        const dayLabel = dateObj.toLocaleDateString(undefined, { weekday: "short" });
+        const dateLabel = dateObj.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const outstanding = event.shoppingList.filter((item) => item.status !== "covered");
+        return {
+          id: event.id,
+          dayLabel,
+          dateLabel,
+          status: event.status,
+          name: event.name,
+          outstanding,
+        };
+      });
+
+      const usedDays = new Set(tiles.map((tile) => `${tile.dayLabel}-${tile.dateLabel}`));
+      let offset = 0;
+      while (tiles.length < 7) {
+        const base = new Date();
+        base.setDate(base.getDate() + offset);
+        const dayLabel = base.toLocaleDateString(undefined, { weekday: "short" });
+        const dateLabel = base.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const key = `${dayLabel}-${dateLabel}`;
+        if (!usedDays.has(key)) {
+          tiles.push({
+            id: `open-${key}`,
+            dayLabel,
+            dateLabel,
+            status: "open",
+            name: "Open day",
+            outstanding: [],
+          });
+          usedDays.add(key);
+        }
+        offset += 1;
+      }
+
+      return tiles;
+    })()
+  : [];
 ---
 
 <MainLayout title={pageTitle}>
   <section class="page-intro">
-    <h1>{dashboard ? `Hi ${dashboard.profile.displayName}, here’s your marketplace pulse` : "Buyer dashboard"}</h1>
-    <p class="lead">{leadText}</p>
-    {dashboard && dashboard.ai.summary.length > 0 && (
-      <ul class="insight-list">
-        {dashboard.ai.summary.map((item) => (
-          <li class={insightClass(item.mood)}>
-            <span class="insight__keyword">{item.keyword}</span>
-            <span class="insight__detail">{item.detail}</span>
-          </li>
-        ))}
-      </ul>
-    )}
+    <div class="intro-text">
+      <h1>{heroTitle}</h1>
+      <p class="lead">{leadText}</p>
+      {hasDashboard && (
+        <div class="hero-card" aria-live="polite">
+          <p class="hero-card__summary">{heroSummary}</p>
+          {overviewCommentary && <p class="hero-card__commentary">{overviewCommentary}</p>}
+        </div>
+      )}
+    </div>
   </section>
 
   {!userId ? (
@@ -47,48 +320,42 @@ const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : "
     </section>
   ) : (
     <>
-      <section class="kpi-grid">
-        <article>
-          <h2>Waste risk</h2>
-          <p class="kpi-value">
-            {dashboard.metrics.wasteRisk}
-            <span class="unit">%</span>
-          </p>
-          <p class="kpi-sub">Lower is better. Keep an eye on expiring items.</p>
-        </article>
-        <article>
-          <h2>Pantry health</h2>
-          <p class="kpi-value">
-            {dashboard.metrics.pantryHealth}
-            <span class="unit">%</span>
-          </p>
-          <p class="kpi-sub">Balance of stocked vs. low inventory.</p>
-        </article>
-        <article>
-          <h2>Budget health</h2>
-          <p class="kpi-value">
-            {dashboard.metrics.budgetHealth}
-            <span class="unit">%</span>
-          </p>
-          <p class="kpi-sub">Weekly spend vs. your ${dashboard.profile.budgetPerWeek} budget.</p>
-        </article>
-        <article>
-          <h2>Event readiness</h2>
-          <p class="kpi-value">
-            {dashboard.metrics.eventReadiness}
-            <span class="unit">%</span>
-          </p>
-          <p class="kpi-sub">Status across {dashboard.profile.events.length} upcoming plans.</p>
-        </article>
-      </section>
+      {commentaryTiles.length > 0 && (
+        <section class="kpi-overview" aria-labelledby="kpi-heading">
+          <header>
+            <h2 id="kpi-heading">Key Performance Commentary</h2>
+            <p>Tap a tile to drill into how your pantry, budget, and events intersect this week.</p>
+          </header>
+          <div class="kpi-tile-grid">
+            {commentaryTiles.map((tile) => (
+                    <article class={`kpi-tile kpi-tile--${tile.mood}`} aria-label={`${tile.label} ${tile.value}${tile.suffix}`} style={`background:${tileColorFromScore(tile.value,0.14)}; border:1px solid rgba(255,255,255,0.04)`}>
+                      <div class="kpi-tile__circle-bg" style={`background: rgba(255,255,255,0.03);`}>
+                        <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*tile.value/100},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(tile.value * 1.26)} /></svg>
+                        <span class="kpi-tile__value"><b>{tile.value}<span>{tile.suffix}</span></b></span>
+                      </div>
+                      <div class="kpi-tile__content">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                          <Icon name={tile.id === 'wasteRisk' ? 'alert' : tile.id === 'pantryHealth' ? 'nutrition' : tile.id === 'budgetHealth' ? 'check' : 'calendar'} size={18} class="kpi-icon" />
+                          <span class="kpi-tile__eyebrow"><b>{tile.label}</b></span>
+                        </div>
+                        <h3><u>{tile.headline}</u></h3>
+                        <p>{tile.detail}</p>
+                        <footer>{tile.helper}</footer>
+                      </div>
+                    </article>
+                  ))}
+          </div>
+        </section>
+      )}
 
-      <section class="actions-panel">
+      <section class="playbook" aria-labelledby="playbook-heading">
         <header>
-          <h2>AI game plan</h2>
-          <p>Powered by pantry, purchasing, and nearby offers.</p>
+          <h2 id="playbook-heading">Today’s AI Playbook</h2>
+          <p>Three focused moves grounded in your pantry, budget, and goals.</p>
+          <p class="voice-hint">Just say “Give me quick recommendations” to have your assistant read these back.</p>
         </header>
         <ul class="insight-stack">
-          {dashboard.ai.recommendedActions.map((item) => (
+          {(recommendations.length > 0 ? recommendations : inventorySuggestions.slice(0, 3)).map((item) => (
             <li class={insightClass(item.mood)}>
               <span class="insight__keyword">{item.keyword}</span>
               <span class="insight__detail">{item.detail}</span>
@@ -97,44 +364,84 @@ const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : "
         </ul>
       </section>
 
-      <section class="inventory">
+      <section class="inventory-intel" aria-labelledby="inventory-heading">
         <header>
-          <h2>Pantry snapshot</h2>
-          <p>
-            {dashboard.emptyInventory
-              ? "Update your inventory information to get more insights and recommendations."
-              : `Tracking ${dashboard.profile.inventory.length} items across ${new Set(
-                  dashboard.profile.inventory.map((item) => item.category)
-                ).size} categories.`}
-          </p>
+          <div>
+            <h2 id="inventory-heading">Pantry Load</h2>
+            <p>{inventoryHeadline}</p>
+          </div>
+          {!emptyInventory && (
+            <ul class="status-pills" aria-label="Inventory status overview">
+              {statusOrder.map((status) => (
+                <li class={`status-pill status-pill--${status}`} style={`background: ${tileColorFromScore((statusCounts[status]/(inventoryItems.length||1))*100, 0.12)};`}>
+                  <span class="status-pill__label"><b>{statusLabels[status]}</b></span>
+                  <span class="status-pill__value">{statusCounts[status] ?? 0}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </header>
-        {dashboard.emptyInventory ? (
+
+        {emptyInventory ? (
           <div class="empty-state">
             <p>No items logged yet. Try adding what’s in your fridge or pantry below.</p>
           </div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Status</th>
-                <th>Quantity</th>
-                <th>Expires</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dashboard.profile.inventory.map((item) => (
-                <tr class={`status-${item.status}`}>
-                  <td data-label="Item">{item.name}</td>
-                  <td class="status" data-label="Status">{item.status.replace("-", " ")}</td>
-                  <td data-label="Quantity">
-                    {item.quantity} {item.unit}
-                  </td>
-                  <td data-label="Expires">{item.expirationDate ?? "—"}</td>
-                </tr>
+          <>
+            <div class="annotation-grid" role="list">
+              {inventoryAnnotations.slice(0, 8).map((annotation) => (
+                <article class={`annotation annotation--${annotation.mood}`} role="listitem">
+                  <header>
+                    <span class="annotation__name">{annotation.name}</span>
+                    <span class="annotation__status">{annotation.statusLabel}</span>
+                  </header>
+                  <p class="annotation__category">{annotation.categoryLabel}</p>
+                  {annotation.suggestion && <p class="annotation__suggestion">{annotation.suggestion}</p>}
+                </article>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {inventorySuggestions.length > 0 && (
+              <aside class="inventory-suggestions" aria-label="Priority moves and offers">
+                <h3>Priority moves &amp; offers</h3>
+                <ul class="insight-stack">
+                  {inventorySuggestions.map((item) => (
+                    <li class={insightClass(item.mood)}>
+                      <span class="insight__keyword">{item.keyword}</span>
+                      <span class="insight__detail">{item.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </aside>
+            )}
+
+            <div class="inventory-table" role="region" aria-label="Pantry inventory table">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Item</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Expires</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventoryItems.map((item) => {
+                    const annotation = inventoryAnnotations.find((entry) => entry.name.toLowerCase() === item.name.toLowerCase());
+                    const urgent = item.status === 'use-soon' || item.status === 'restock';
+                    return (
+                      <tr class={`status-${item.status}`} style={`background:${tileColorFromScore(urgent ? 20 : 72, urgent ? 0.08 : 0.04)}; border-radius:10px;` }>
+                              <td data-label="Item"><div style="display:flex;align-items:center;gap:8px;"><Icon name="inventory" size={16} /> <b>{item.name}</b></div></td>
+                        <td class="status" data-label="Status"><u>{annotation?.statusLabel ?? item.status.replace("-", " ")}</u></td>
+                        <td data-label="Quantity">{item.quantity} {item.unit}</td>
+                        <td data-label="Expires">{item.expirationDate ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <form class="add-form" id="inventory-form">
@@ -171,138 +478,257 @@ const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : "
         </form>
       </section>
 
-      <section class="meal-plan">
-        <header>
-          <h2>3-day meal lineup</h2>
-          <p>Tailored to your inventory and dietary preferences.</p>
-        </header>
-        <div class="plan-grid">
-          {dashboard.ai.mealPlan.map((day) => (
-            <article>
-              <h3>{day.day}</h3>
-              <ul class="insight-stack">
-                {day.meals.map((meal) => (
-                  <li class={insightClass(meal.mood)}>
-                    <span class="insight__keyword">{meal.keyword}</span>
-                    <span class="insight__detail">{meal.detail}</span>
-                  </li>
-                ))}
-              </ul>
-              {day.addOns && day.addOns.length > 0 && (
-                <div class="add-ons">
-                  <h4>Add-ons</h4>
-                  <ul class="insight-stack">
-                    {day.addOns.map((addOn) => (
-                      <li class={insightClass(addOn.mood)}>
-                        <span class="insight__keyword">{addOn.keyword}</span>
-                        <span class="insight__detail">{addOn.detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+      {pantryNutrition && (
+        <section class="nutrition" aria-labelledby="nutrition-heading">
+          <header>
+            <h2 id="nutrition-heading">Nutrition Guidance</h2>
+            <p class={`nutrition-macro insight${moodClass(pantryNutrition.overallMood)}`}>
+              <span class="insight__detail">{pantryNutrition.macroBalance}</span>
+            </p>
+          </header>
+          {nutrientHeatmap.length > 0 && (
+            <div class="nutrition-heatmap" role="list">
+              {nutrientHeatmap.map((cell) => (
+                <article class="heatmap-cell" role="listitem" data-mood={cell.mood} style={`background:${tileColorFromScore(cell.score, 0.18)}; font-weight: bold; text-decoration: ${cell.score < 50 ? 'underline' : 'none'};`}>
+                  <header>
+                    <span class="heatmap-cell__label">{cell.label}</span>
+                    <span class="heatmap-cell__score">{cell.score}%</span>
+                  </header>
+                  <p>{cell.detail}</p>
+                </article>
+              ))}
+            </div>
+          )}
+          <div class="nutrition-grid">
+            <div class="nutrition-card">
+              <h3>Potential gaps</h3>
+              {pantryNutrition.missingNutrients.length > 0 ? (
+                <ul>
+                  {pantryNutrition.missingNutrients.map((note) => (
+                    <li><b>{note}</b></li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Coverage looks balanced across macros.</p>
               )}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section class="diet-schedule">
-        <header>
-          <h2>Daily wellness cadence</h2>
-          <p>Small shifts to stay aligned with your goals.</p>
-        </header>
-        <ul class="diet-list">
-          {dashboard.ai.dietSchedule.map((entry) => (
-            <li>
-              <strong>{entry.day}</strong>
-              <div class={insightClass(entry.focus.mood)}>
-                <span class="insight__keyword">{entry.focus.keyword}</span>
-                <span class="insight__detail">{entry.focus.detail}</span>
-              </div>
-              <div class={insightClass(entry.tip.mood)}>
-                <span class="insight__keyword">{entry.tip.keyword}</span>
-                <span class="insight__detail">{entry.tip.detail}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section class="events">
-        <header>
-          <h2>Upcoming events</h2>
-          <p>Coordinate shopping lists and headcounts.</p>
-        </header>
-        <ul>
-          {dashboard.profile.events.map((event) => (
-            <li>
-              <div class="event-head">
-                <strong>{event.name}</strong>
-                <span>{new Date(event.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                <span>{event.headcount} guests</span>
-                <span class={`badge badge-${event.status}`}>{event.status.replace("-", " ")}</span>
-              </div>
-              <div class="event-body">
-                <p>Menu: {event.menu.join(", ")}</p>
-                <ul class="shopping">
-                  {event.shoppingList.map((item) => (
-                    <li class={`status-${item.status}`}>
-                      <span>{item.name}</span>
-                      <small>
-                        {item.quantity} {item.unit}
-                      </small>
+            </div>
+            <div class="nutrition-card">
+              <h3>Recommended additions</h3>
+              {pantryNutrition.recommendedAdditions.length > 0 ? (
+                <ul class="insight-stack">
+                  {pantryNutrition.recommendedAdditions.map((addition) => (
+                    <li class={insightClass(addition.mood)}>
+                      <span class="insight__keyword"><b>{addition.item}</b></span>
+                      <span class="insight__detail">
+                        {addition.reason}
+                        {addition.storeSuggestion && (
+                          <>
+                            <br />
+                            <u>{addition.storeSuggestion}</u>
+                          </>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </li>
-          ))}
-        </ul>
+              ) : (
+                <p>No immediate additions needed — keep rotating current staples.</p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
-        {dashboard.shoppingFocus.length > 0 && (
-          <div class="focus-callout">
+      <section class="dietician-chat" aria-labelledby="dietician-heading">
+        <header>
+          <h2 id="dietician-heading">Chat with your dietician</h2>
+          <p>Ask a quick question and we’ll contextualize it with your pantry insights.</p>
+        </header>
+        <form id="dietician-form" class="chat-form" data-base={pantryNutrition?.macroBalance ?? heroSummary}>
+          <label for="dietician-question">Your question</label>
+          <textarea
+            id="dietician-question"
+            name="question"
+            placeholder="How should I balance protein for the weekend potluck?"
+            required
+            rows={4}
+          />
+          <button type="submit" class="button button--secondary">Send to dietician</button>
+        </form>
+        <div id="dietician-response" class="chat-response" aria-live="polite">
+          Start a conversation to get actionable guidance.
+        </div>
+      </section>
+
+      <section class="events" aria-labelledby="events-heading">
+        <header>
+          <h2 id="events-heading">7-Day Calendar</h2>
+          <p>See your week at a glance. Each tile shows the day, event, and status.</p>
+        </header>
+        {calendarTiles.length > 0 ? (
+          <div class="calendar-strip" role="list">
+            {calendarTiles.map((tile) => (
+              <article class={`calendar-tile calendar-tile--${tile.status}`} role="listitem" style={`background:${tileColorFromScore(tile.status==='open' ? 50 : 30, 0.08)};`}>
+                <header>
+                  <span class="calendar-tile__day"><b>{tile.dayLabel}</b></span>
+                  <span class="calendar-tile__date"><u>{tile.dateLabel}</u></span>
+                </header>
+                <h3>{tile.name}</h3>
+                {tile.outstanding.length > 0 ? (
+                  <ul class="shopping">
+                    {tile.outstanding.map((item) => (
+                      <li><b>{item.name}</b> <small>{item.quantity} {item.unit}</small></li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="shopping shopping--clear">No outstanding tasks.</p>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p class="empty-state">No events scheduled — great window for meal prep experiments.</p>
+        )}
+
+        {shoppingFocus.length > 0 && (
+          <aside class="focus-callout">
             <h3>Smart shopping focus</h3>
             <ul>
-              {dashboard.shoppingFocus.map((item) => (
+              {shoppingFocus.map((item) => (
                 <li>{item}</li>
               ))}
             </ul>
-          </div>
+          </aside>
         )}
       </section>
 
-  <section class="offers">
+      <section class="offers" aria-labelledby="offers-heading">
         <header>
-          <h2>Nearby marketplace offers</h2>
-          <p>Bundles and markdowns near {dashboard.profile.zip}.</p>
+          <h2 id="offers-heading">Nearby Offers &amp; Bundles</h2>
+          <p>Curated deals near {dashboard.profile.zip} aligned to your current plan.</p>
         </header>
-        <ul>
-          {dashboard.offers.length === 0 ? (
-            <li>No local offers detected. Check back soon!</li>
-          ) : (
-            <>
-              {dashboard.offers.map((offer) => (
-                <li>
-                  <strong>{offer.storeName}</strong>
-                  <span>{offer.description}</span>
-                  <small>Valid through {offer.validThrough}</small>
-                </li>
-              ))}
-              {dashboard.ai.dealHighlights.map((highlight) => (
-                <li class={`highlight ${insightClass(highlight.mood)}`}>
-                  <span class="insight__keyword">{highlight.keyword}</span>
-                  <span class="insight__detail">{highlight.detail}</span>
-                </li>
-              ))}
-            </>
-          )}
-        </ul>
+        {offers.length > 0 ? (
+          <div class="offers-tile-grid" role="list">
+            {offers.map((offer) => (
+              <article class={`offer-tile offer-tile--${offer.type}`} role="listitem" data-mood={offer.type} style={`background:${tileColorFromScore(offer.discountPercent,0.14)};`}>
+                <header>
+                  <div style="display:flex;align-items:center;gap:8px;"><Icon name="offer" size={16} /> <span class="offer-tile__store"><b>{offer.storeName}</b></span></div>
+                  <div style="display:flex;gap:8px;align-items:center;"><span class="offer-tile__discount"><u>{offer.discountPercent}% off</u></span>
+                  <span class="offer-tile__valid">Valid through {offer.validThrough}</span></div>
+                </header>
+                <p>{offer.description}</p>
+                {offer.items.length > 0 && (
+                  <ul class="offer-items">
+                    {offer.items.map((item) => (
+                      <li><b>{item}</b></li>
+                    ))}
+                  </ul>
+                )}
+                <footer>
+                  <button type="button" class="button button--secondary">Add to shopping plan</button>
+                </footer>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p class="empty-state">No local offers detected. Check back soon!</p>
+        )}
+      </section>
+
+      <section class="demographics" aria-labelledby="demographics-heading">
+        <header>
+          <h2 id="demographics-heading">Marketplace Demographics & Statistics</h2>
+          <p>Heatmap and small charts derived from local buyer activity and offers.</p>
+        </header>
+
+        <!-- 4x4 heatmap grid (synthetic from nearby offers & metrics when available) -->
+        <div class="demographics-heatmap">
+          {(() => {
+            const size = 4;
+            const cells = [];
+            let i = 0;
+            for (let r = 0; r < size; r++) {
+              const row: any[] = [];
+              for (let c = 0; c < size; c++) {
+                const base = metrics ? Math.round((metrics.pantryHealth + metrics.budgetHealth + metrics.wasteRisk) / 3) : 62;
+                const noise = Math.round(((i % 5) - 2) * 6);
+                const score = Math.max(8, Math.min(98, base + noise - (r * 4) + c * 3));
+                const label = `Z${(88000 + i).toString().slice(0, 3)}`;
+                row.push({ id: `cell-${i}`, row: r, col: c, score, label });
+                i++;
+              }
+              cells.push(row);
+            }
+            return cells.map((row) => (
+              <div class="heatmap-row">
+                {row.map((cell) => (
+                  <div class="heatmap-square" title={`${cell.label} • ${cell.score}%`} style={`background:${tileColorFromScore(cell.score,0.2)};`}>
+                    <div class="heatmap-square__label">{cell.label}</div>
+                    <div class="heatmap-square__score">{cell.score}%</div>
+                  </div>
+                ))}
+              </div>
+            ));
+          })()}
+        </div>
+
+        <div class="demographics-charts">
+          <article class="chart demographics-bar">
+            <header><Icon name="box" /> <b>Top categories</b></header>
+            <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
+              {(() => {
+                const data = [12, 28, 20, 8, 32];
+                const max = Math.max(...data);
+                return data.map((d, idx) => {
+                  const w = 34;
+                  const x = idx * (w + 6) + 6;
+                  const h = Math.round((d / max) * 44);
+                  const y = 52 - h;
+                  const color = tileColorFromScore(Math.round((d / max) * 100), 0.28);
+                  return <rect x={x} y={y} width={w} height={h} rx="4" style={`fill:${color};`} />;
+                });
+              })()}
+            </svg>
+          </article>
+
+          <article class="chart demographics-bar">
+            <header><Icon name="calendar" /> <b>Spending distribution</b></header>
+            <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
+              {(() => {
+                const data = [42, 30, 55, 22, 60];
+                const max = Math.max(...data);
+                return data.map((d, idx) => {
+                  const w = 28;
+                  const x = idx * (w + 8) + 6;
+                  const h = Math.round((d / max) * 44);
+                  const y = 52 - h;
+                  const color = tileColorFromScore(Math.round((d / max) * 100), 0.22);
+                  return <rect x={x} y={y} width={w} height={h} rx="2" style={`fill:${color};`} />;
+                });
+              })()}
+            </svg>
+          </article>
+        </div>
       </section>
     </>
   )}
 
   <script is:inline>
     (() => {
+      function showToast(text){
+        const t = document.createElement('div');
+        t.className='quick-toast'; t.textContent=text; document.body.appendChild(t);
+        setTimeout(()=>t.remove(),1600);
+      }
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       const form = document.getElementById("inventory-form");
       const status = document.getElementById("inventory-status");
       if (!(form instanceof HTMLFormElement) || !(status instanceof HTMLElement)) return;
@@ -325,9 +751,9 @@ const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : "
           const response = await fetch("/api/buyer/inventory", {
             method: "POST",
             headers: {
-              "content-type": "application/json"
+              "content-type": "application/json",
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
@@ -352,446 +778,230 @@ const insightClass = (mood?: string) => `insight${mood ? ` insight--${mood}` : "
         }
       });
     })();
+
+    (() => {
+      const form = document.getElementById("dietician-form");
+      const response = document.getElementById("dietician-response");
+      if (!(form instanceof HTMLFormElement) || !(response instanceof HTMLElement)) return;
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit instanceof HTMLButtonElement) {
+          submit.disabled = true;
+          submit.dataset.loading = "true";
+        }
+
+        const formData = new FormData(form);
+        const base = form.dataset.base ?? "";
+        const question = (formData.get("question") ?? "").toString().trim();
+
+        response.dataset.status = "pending";
+        response.textContent = "Drafting guidance…";
+
+        setTimeout(() => {
+          if (!question) {
+            response.dataset.status = "idle";
+            response.innerHTML = `<div class="chat-note">${escapeHtml(base || 'Share your question above to get actionable guidance.')}</div>`;
+          } else {
+            const lowered = question.toLowerCase();
+            let focus = "balance your upcoming meals with produce-first plates.";
+            if (lowered.includes("protein")) {
+              focus = "fold in lean proteins you already own before buying extras.";
+            } else if (lowered.includes("fiber") || lowered.includes("greens")) {
+              focus = "prioritize leafy greens and legumes in the next two meal blocks.";
+            } else if (lowered.includes("budget")) {
+              focus = "plan pantry-first meals and reserve spend for targeted produce add-ons.";
+            }
+
+            // Colorize a few negative/positive tokens
+            const colorize = (text) => {
+              const negatives = ['waste', 'overbudget', 'over budget', 'expired', 'urgent', 'high waste risk', 'restock'];
+              const positives = ['healthy', 'on track', 'under budget', 'good', 'green', 'win'];
+              let out = escapeHtml(text);
+              negatives.forEach((tok) => {
+                const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+                out = out.replace(re, (m) => `<span class="word--neg">${m}</span>`);
+              });
+              positives.forEach((tok) => {
+                const re = new RegExp(tok.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+                out = out.replace(re, (m) => `<span class="word--pos">${m}</span>`);
+              });
+              return out;
+            };
+
+            response.dataset.status = "success";
+              response.innerHTML = `<div class="chat-answer">${colorize(base ? `${base} ` : '')}Based on your question, ${colorize(focus)}</div>`;
+          }
+
+          if (submit instanceof HTMLButtonElement) {
+            submit.disabled = false;
+            delete submit.dataset.loading;
+          }
+        }, 450);
+      });
+    })();
+
+    // clickable tiles
+    (function(){
+      const clickables = document.querySelectorAll('.kpi-tile, .heatmap-cell, .offer-tile');
+      clickables.forEach(el=> el.addEventListener('click', ()=> showToast((el.querySelector('h3, h2, b')?.textContent || 'Selected'))));
+    })();
   </script>
 
-<style>
+  <style>
+  /* Clean, consistent dashboard theme for buyer */
+  :root {
+    --tile-radius: 14px;
+    --tile-bg: rgba(255,255,255,0.03);
+    --tile-bg-2: rgba(255,255,255,0.02);
+    --tile-padding: 18px;
+    --gap: 18px;
+    --gauge-size: 120px;
+    --gauge-stroke: 7;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  }
+
   :global(main) {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: var(--gap);
+    padding-block: 40px 64px;
   }
 
+  body { font-family: var(--font-sans); }
+
+  h1, h2, h3 { margin: 0 0 8px 0; }
+  p { margin: 0; color: var(--color-text-muted); }
+
+  /* PAGE INTRO */
   .page-intro {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .page-intro h1 {
-    font-size: clamp(2rem, 5vw, 2.6rem);
-    margin: 0;
-  }
-
-  .lead {
-    color: var(--color-text-muted);
-    max-width: 70ch;
-  }
-
-  .empty {
-    text-align: center;
-    padding: var(--space-xl);
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-  }
-
-  .kpi-grid {
     display: grid;
-    gap: var(--space-md);
+    gap: 20px;
+    grid-template-columns: 1fr 340px;
+    align-items: start;
+  }
+  @media (max-width: 960px) { .page-intro { grid-template-columns: 1fr; } }
+
+  .hero-card {
+    padding: 20px; border-radius: 16px; background: rgba(255,255,255,0.02); box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* KPI TILE GRID */
+  .kpi-tile-grid {
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
   }
 
-  .kpi-grid article {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
+  .kpi-tile {
+    display: flex; gap: 14px; align-items: center;
+    padding: var(--tile-padding); border-radius: var(--tile-radius);
+    background: var(--tile-bg);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 8px 20px rgba(2,6,23,0.45);
+    border: 1px solid rgba(255,255,255,0.03);
   }
 
-  .kpi-value {
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin: var(--space-2xs) 0;
+  .kpi-tile__circle-bg { width: calc(var(--gauge-size) + 8px); height: calc(var(--gauge-size) + 8px); position: relative; flex: 0 0 calc(var(--gauge-size) + 8px); display:flex; align-items:center; justify-content:center; border-radius:50%; backdrop-filter: blur(4px); }
+  .kpi-tile__gauge { width: 100%; height: 100%; transform: rotate(-90deg); position:absolute; left:0; top:0; }
+  .kpi-tile__gauge circle { transition: stroke-dashoffset 400ms ease; }
+  .kpi-tile__value { position: relative; z-index:2; font-size:18px; font-weight:700; color: #fff; text-align:center; }
+  .kpi-tile__gauge circle { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+  .kpi-tile__value { font-size:20px; }
+
+  /* pop animation */
+  .kpi-tile { transform: translateZ(0); transition: transform 240ms cubic-bezier(.2,.9,.3,1), box-shadow 240ms; }
+  .kpi-tile:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 26px 56px rgba(2,6,23,0.55); cursor:pointer; }
+  .kpi-tile__value span { font-weight:600; color: rgba(255,255,255,0.85); margin-left:4px; }
+
+  .kpi-tile__content { flex:1; min-width:0; }
+  .kpi-tile__eyebrow { font-size:12px; color: var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .kpi-tile h3 { font-size:1.05rem; margin-top:6px; }
+  .kpi-tile p { margin-top:8px; color: rgba(255,255,255,0.85); }
+
+  /* Status pills */
+  .status-pills { display:flex; gap:10px; flex-wrap:wrap; }
+  .status-pill { padding:8px 12px; border-radius:999px; background: rgba(255,255,255,0.02); font-weight:600; color: #fff; }
+
+  /* Inventory table */
+  .inventory-table { margin-top: 12px; }
+  .inventory-table table { width:100%; border-collapse:separate; border-spacing:0; background: transparent; }
+  .inventory-table th, .inventory-table td { padding:12px 14px; text-align:left; }
+  .inventory-table thead th { font-size:13px; color:var(--color-text-muted); }
+  .inventory-table tbody tr { border-radius:12px; margin-bottom:8px; display:table; width:100%; table-layout:fixed; background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+  .inventory-table td.status { font-weight:700; }
+
+  /* Heatmap */
+  .nutrition-heatmap { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .heatmap-cell { padding:14px; border-radius:12px; color:#fff; min-height:96px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: 0 6px 18px rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.03); }
+  .heatmap-cell:hover { transform: translateY(-6px); box-shadow:0 22px 44px rgba(0,0,0,0.45); }
+  .heatmap-cell__label { font-weight:700; }
+  .heatmap-cell__score { font-weight:800; font-size:1.05rem; }
+
+  /* Calendar */
+  .calendar-strip { display:flex; gap:18px; overflow-x:auto; padding-bottom:6px; padding-top:6px; }
+  .calendar-tile { min-width:140px; flex:0 0 140px; padding:14px; border-radius:14px; text-align:center; background: rgba(255,255,255,0.02); box-shadow: 0 10px 22px rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.03); }
+  .calendar-tile__day { font-weight:700; color: rgba(255,255,255,0.9); }
+  .calendar-tile__date { font-size:0.85rem; color:var(--color-text-muted); }
+
+  /* Offers */
+  .offers-tile-grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .offer-tile { padding:16px; border-radius:12px; box-shadow: 0 8px 20px rgba(0,0,0,0.28); color:#fff; border:1px solid rgba(255,255,255,0.03); }
+  .offer-tile__store { font-weight:800; }
+  .offer-items li { margin-left:12px; }
+
+  /* Demographics */
+  .demographics-tile-grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top:8px; }
+  .demographics-tile { padding:12px; border-radius:12px; background:rgba(255,255,255,0.02); color:#fff; font-weight:700; text-align:center; }
+
+  /* Responsive tweaks */
+  @media (max-width: 720px) {
+    :root { --gauge-size: 76px; }
+    .kpi-tile { padding:14px; }
+    .calendar-tile { min-width:100px; flex:0 0 100px; }
   }
 
-  .unit {
-    font-size: 1rem;
-    margin-left: var(--space-3xs);
-    color: var(--color-text-muted);
-  }
+  /* Utility */
+  .empty-state { color:var(--color-text-muted); padding:12px; }
+  .shopping--clear { color:var(--color-text-muted); }
+  .insight__keyword { color: var(--color-text-muted); }
+  .insight__detail { color: rgba(255,255,255,0.9); }
+  /* Icon sizing */
+  .kpi-icon, .offer-tile svg, .heatmap-square svg { width:18px; height:18px; color: rgba(255,255,255,0.95); }
 
-  .kpi-sub {
-    margin: 0;
-    color: var(--color-text-muted);
-  }
+  /* Heatmap grid */
+  .demographics-heatmap { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .heatmap-row { display:flex; gap:8px; }
+  .heatmap-square { flex:1; min-height:64px; border-radius:8px; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff; font-weight:700; box-shadow: inset 0 -10px 24px rgba(0,0,0,0.12); border:1px solid rgba(255,255,255,0.03); }
+  .heatmap-square__label { font-size:12px; opacity:0.9; }
+  .heatmap-square__score { font-size:14px; margin-top:6px; }
 
-  .actions-panel {
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
-  }
+  .demographics-charts { display:flex; gap:12px; margin-top:12px; }
+  .ai-conclusion { font-weight:900; color:#ffd08a; margin-top:8px; }
+  .demographics-charts .chart { flex:1; padding:12px; border-radius:10px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); }
+  .demographics-charts header { display:flex; gap:8px; align-items:center; margin-bottom:8px; color:#fff; }
+  .mini-bar { width:100%; height:60px; display:block; }
 
-  .actions-panel ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: var(--space-sm);
-    color: var(--color-text);
-  }
+  /* Chat box styling */
+  .dietician-chat { margin-top:18px; }
+  .chat-form { display:flex; flex-direction:column; gap:8px; padding:14px; border-radius:12px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); }
+  .chat-form textarea { padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background: rgba(0,0,0,0.18); color:#fff; }
+  .chat-response { margin-top:10px; padding:12px; border-radius:10px; background: rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.02); min-height:56px; }
+  .chat-answer { color: rgba(255,255,255,0.95); }
+  .chat-note { color: var(--color-text-muted); }
 
-  .inventory table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: var(--space-lg);
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
+  /* word colorization */
+  .word--neg { color: #ff6b6b; font-weight:700; text-decoration:underline; }
+  .word--pos { color: #7ef29b; font-weight:700; }
 
-  .inventory th,
-  .inventory td {
-    text-align: left;
-    padding: var(--space-sm);
-    font-size: 0.95rem;
-  }
+  .cta { padding:10px 14px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); color:#fff; font-weight:800; cursor:pointer; }
+  .cta.secondary { background: transparent; border:1px dashed rgba(255,255,255,0.06); }
 
-  .inventory tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.05);
-  }
+  .quick-toast { position:fixed; right:18px; bottom:18px; background:rgba(0,0,0,0.8); color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 8px 18px rgba(0,0,0,0.5); z-index:9999; }
 
-  .inventory .status {
-    text-transform: capitalize;
-    font-weight: 600;
-  }
-
-  .inventory .status-use-soon {
-    color: var(--color-warning-text);
-  }
-
-  .inventory .status-restock {
-    color: #ffb347;
-  }
-
-  .inventory .status-healthy {
-    color: #6fe7c4;
-  }
-
-  .inventory .status-overflow {
-    color: #66d9ed;
-  }
-
-  .add-form {
-    background: var(--surface-raised);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    display: grid;
-    gap: var(--space-md);
-  }
-
-  .add-form .form-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  .status-message {
-    font-size: 0.9rem;
-  }
-
-  .status-message[data-status="pending"] {
-    color: var(--color-primary);
-  }
-
-  .status-message[data-status="success"] {
-    color: #6fe7c4;
-  }
-
-  .status-message[data-status="error"] {
-    color: #ffa0a0;
-  }
-
-  .plan-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-
-  .plan-grid article {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .plan-grid h3 {
-    margin: 0;
-  }
-
-  .add-ons {
-    border-top: 1px solid var(--surface-subtle);
-    padding-top: var(--space-sm);
-  }
-
-  .add-ons h4 {
-    margin: 0 0 var(--space-xs);
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .diet-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-md);
-  }
-
-  .diet-list li {
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-sm);
-    display: grid;
-    gap: var(--space-sm);
-  }
-
-  .diet-list strong {
-    font-size: 1rem;
-  }
-
-  .diet-list .insight {
-    background: transparent;
-    border-radius: var(--radius-md);
-    box-shadow: none;
-    border-left-width: 3px;
-    padding: var(--space-xs) var(--space-sm);
-  }
-
-  .events ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-md);
-  }
-
-  .events li {
-    background: var(--surface-raised);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    display: grid;
-    gap: var(--space-sm);
-  }
-
-  .event-head {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-    align-items: baseline;
-  }
-
-  .badge {
-    padding: var(--space-3xs) var(--space-2xs);
-    border-radius: var(--radius-pill);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .badge-on-track {
-    background: rgba(111, 231, 196, 0.15);
-    color: #6fe7c4;
-  }
-
-  .badge-needs-shopping {
-    background: rgba(255, 163, 102, 0.15);
-    color: #ffa366;
-  }
-
-  .badge-draft {
-    background: rgba(102, 217, 237, 0.15);
-    color: #66d9ed;
-  }
-
-  .shopping {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-  }
-
-  .shopping li {
-    background: rgba(255, 255, 255, 0.05);
-    padding: var(--space-3xs) var(--space-sm);
-    border-radius: var(--radius-pill);
-    font-size: 0.85rem;
-    display: flex;
-    gap: var(--space-3xs);
-  }
-
-  .focus-callout {
-    margin-top: var(--space-md);
-    background: rgba(102, 217, 237, 0.1);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-  }
-
-  .offers ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-sm);
-  }
-
-  .offers li {
-    background: var(--surface-raised);
-    padding: var(--space-md);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    display: grid;
-    gap: var(--space-3xs);
-  }
-
-  .offers li.highlight {
-    border: 1px dashed rgba(102, 217, 237, 0.4);
-    background: rgba(102, 217, 237, 0.08);
-  }
-
-  .insight-list,
-  .insight-stack {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: var(--space-sm);
-  }
-
-  .insight-list {
-    margin: var(--space-md) 0 0;
-  }
-
-  .insight {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3xs);
-    padding: var(--space-sm);
-    border-radius: var(--radius-md);
-    background: var(--surface-raised);
-    border-left: 4px solid var(--color-primary-soft, rgba(42, 116, 255, 0.35));
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-  }
-
-  .insight__keyword {
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--color-text-muted);
-  }
-
-  .insight__detail {
-    font-size: 0.95rem;
-    color: var(--color-text);
-  }
-
-  .insight--green {
-    border-left-color: #1c9c7c;
-    background: rgba(28, 156, 124, 0.12);
-  }
-
-  .insight--amber {
-    border-left-color: #d98b23;
-    background: rgba(217, 139, 35, 0.12);
-  }
-
-  .insight--red {
-    border-left-color: #d64550;
-    background: rgba(214, 69, 80, 0.12);
-  }
-
-  @media (max-width: 640px) {
-    .inventory table,
-    .inventory thead,
-    .inventory tbody,
-    .inventory th,
-    .inventory td,
-    .inventory tr {
-      display: block;
-    }
-
-    .inventory thead {
-      display: none;
-    }
-
-    .inventory td {
-      display: flex;
-      justify-content: space-between;
-      padding: var(--space-sm) var(--space-md);
-    }
-
-    .inventory td::before {
-      content: attr(data-label);
-      font-weight: 600;
-      color: var(--color-text-muted);
-    }
-  }
-  
-  .product-card {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid transparent;
-  }
-
-  .product-card.highlight {
-    border-color: var(--color-primary-soft);
-    box-shadow: var(--shadow-md);
-  }
-
-  .product-card h3 {
-    margin: 0;
-  }
-
-  .category {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-  }
-
-  .price {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin: 0;
-  }
-
-  .cta,
-  .secondary {
-    border: none;
-    padding: var(--space-2xs) var(--space-sm);
-    border-radius: var(--radius-pill);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .cta {
-    background: var(--color-primary);
-    color: white;
-  }
-
-  .secondary {
-    background: var(--surface-subtle);
-    color: var(--color-text-muted);
-  }
-
-  @media (max-width: 640px) {
-    .shopping-focus li {
-      grid-template-columns: 1fr;
-      text-align: left;
-    }
-  }
-</style>
+  /* Extend hover reactions to more tiles */
+  .heatmap-square:hover, .offer-tile:hover, .annotation:hover { transform: translateY(-4px); box-shadow: 0 18px 36px rgba(2,6,23,0.5); }
+  </style>
+</MainLayout>

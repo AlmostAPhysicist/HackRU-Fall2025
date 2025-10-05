@@ -2,10 +2,15 @@ import { GoogleGenAI } from '@google/genai';
 import type {
 	BuyerAiInsights,
 	BuyerProfile,
+	BuyerKpiCallout,
+	BuyerKpiMetric,
 	DietScheduleSuggestion,
 	HighlightedInsight,
+	InventoryAnnotation,
 	MealPlanSuggestion,
 	MoodColor,
+	NutritionRecommendation,
+	PantryNutritionSummary,
 	SellerAiInsights,
 	SellerProfile,
 	StoreOffer,
@@ -159,14 +164,61 @@ async function callAiJson<T>(prompt: string): Promise<T | null> {
 	if (!raw) {
 		return null;
 	}
-
 	try {
 		const payload = extractJsonPayload(raw);
-		return JSON.parse(payload) as T;
+		try {
+			return JSON.parse(payload) as T;
+		} catch (firstErr) {
+			// Attempt to sanitize common JSON issues (trailing commas, comments, unquoted keys)
+			try {
+				const sanitized = sanitizeJsonString(payload);
+				return JSON.parse(sanitized) as T;
+			} catch (secondErr) {
+				console.warn('[ai] Unable to parse Gemini JSON payload after sanitization', secondErr, '\nOriginal payload:', payload, '\nSanitized payload:', sanitizeJsonString(payload));
+				return null;
+			}
+		}
 	} catch (error) {
-		console.warn('[ai] Unable to parse Gemini JSON payload', error, '\nRaw response:', raw);
+		console.warn('[ai] Unexpected error extracting/parsing Gemini JSON payload', error, '\nRaw response:', raw);
 		return null;
 	}
+}
+
+/**
+ * Heuristic sanitizer to fix common malformed JSON from language models.
+ * - Removes JS-style comments
+ * - Removes trailing commas before } or ]
+ * - Quotes unquoted object keys when safe
+ * - Strips control characters that break parsers
+ */
+function sanitizeJsonString(input: string): string {
+	let out = input;
+
+	// Remove block comments /* */ and line comments //
+	out = out.replace(/\/\*[\s\S]*?\*\//g, '');
+	out = out.replace(/(^|[^:])\/\/[^\n\r]*/g, '$1');
+
+	// Remove stray backticks or ``` markers
+	out = out.replace(/```json|```/gi, '');
+
+	// Remove control characters except common whitespace (tab, newline)
+	out = out.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+
+	// Quote unquoted object keys: { key: -> { "key":
+	// Only when key looks like an identifier (no spaces, not quoted)
+	out = out.replace(/([\{,\n\r\s])(\s*)([A-Za-z_\$@][A-Za-z0-9_\$@-]*?)\s*:\s*/g, '$1"$3": ');
+
+	// Remove trailing commas before } or ]
+	out = out.replace(/,\s*(}[\])])/g, '$1');
+	out = out.replace(/,\s*([}\]])/g, '$1');
+
+	// Collapse multiple commas
+	out = out.replace(/,\s*,+/g, ',');
+
+	// Trim
+	out = out.trim();
+
+	return out;
 }
 
 function ensureMood(value: unknown, fallback: MoodColor = 'amber'): MoodColor {
@@ -271,6 +323,128 @@ function parseDietSchedule(value: any): DietScheduleSuggestion[] {
 		.filter(Boolean) as DietScheduleSuggestion[];
 }
 
+const KPI_HEADLINES: Record<BuyerKpiMetric, string> = {
+	wasteRisk: 'WASTE RISK',
+	pantryHealth: 'PANTRY LOAD',
+	budgetHealth: 'BUDGET HEALTH',
+	eventReadiness: 'EVENT READINESS',
+};
+
+const KPI_METRICS: BuyerKpiMetric[] = ['wasteRisk', 'pantryHealth', 'budgetHealth', 'eventReadiness'];
+
+function ensureKpiMetric(value: unknown): BuyerKpiMetric {
+	if (typeof value === 'string') {
+		const normalized = value as BuyerKpiMetric;
+		if ((KPI_METRICS as string[]).includes(normalized)) {
+			return normalized;
+		}
+	}
+	return 'wasteRisk';
+}
+
+function parseKpiCallouts(value: any): BuyerKpiCallout[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((entry) => {
+			if (!entry || typeof entry !== 'object') {
+				return null;
+			}
+			const metric = ensureKpiMetric((entry as any).metric);
+			const detail = typeof entry.detail === 'string' ? entry.detail.trim() : '';
+			if (!detail) {
+				return null;
+			}
+			const rawHeadline = typeof entry.headline === 'string' ? entry.headline.trim() : '';
+			const headline = rawHeadline ? rawHeadline.toUpperCase() : KPI_HEADLINES[metric];
+			return {
+				metric,
+				headline,
+				mood: ensureMood((entry as any).mood),
+				detail,
+			} satisfies BuyerKpiCallout;
+		})
+		.filter(Boolean) as BuyerKpiCallout[];
+}
+
+function parseInventoryAnnotations(value: any): InventoryAnnotation[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((entry) => {
+			if (!entry || typeof entry !== 'object') {
+				return null;
+			}
+			const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+			const statusLabel = typeof entry.statusLabel === 'string' ? entry.statusLabel.trim() : '';
+			const categoryLabel = typeof entry.categoryLabel === 'string' ? entry.categoryLabel.trim() : '';
+			if (!name || !statusLabel || !categoryLabel) {
+				return null;
+			}
+			const suggestion = typeof entry.suggestion === 'string' ? entry.suggestion.trim() : undefined;
+			return {
+				name,
+				mood: ensureMood((entry as any).mood),
+				statusLabel,
+				categoryLabel,
+				suggestion,
+			} satisfies InventoryAnnotation;
+		})
+		.filter(Boolean) as InventoryAnnotation[];
+}
+
+function parseNutritionRecommendations(value: any): NutritionRecommendation[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((entry) => {
+			if (!entry || typeof entry !== 'object') {
+				return null;
+			}
+			const item = typeof entry.item === 'string' ? entry.item.trim() : '';
+			const reason = typeof entry.reason === 'string' ? entry.reason.trim() : '';
+			if (!item || !reason) {
+				return null;
+			}
+			const storeSuggestion = typeof entry.storeSuggestion === 'string' ? entry.storeSuggestion.trim() : undefined;
+			const mood = ensureMood((entry as any).mood, 'green');
+			return { item, reason, storeSuggestion, mood } satisfies NutritionRecommendation;
+		})
+		.filter(Boolean) as NutritionRecommendation[];
+}
+
+function parsePantryNutrition(value: any): PantryNutritionSummary | null {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const macroBalance = typeof (value as any).macroBalance === 'string' ? (value as any).macroBalance.trim() : '';
+	const missingNutrients = Array.isArray((value as any).missingNutrients)
+		? (value as any).missingNutrients
+			.map((item: unknown) => (typeof item === 'string' ? item.trim() : ''))
+			.filter(Boolean)
+		: [];
+	const recommendedAdditions = parseNutritionRecommendations((value as any).recommendedAdditions);
+	const overallMood = ensureMood((value as any).overallMood, 'amber');
+
+	if (!macroBalance && missingNutrients.length === 0 && recommendedAdditions.length === 0) {
+		return null;
+	}
+
+	return {
+		macroBalance: macroBalance || 'No macro balance insight available.',
+		missingNutrients,
+		recommendedAdditions,
+		overallMood,
+	} satisfies PantryNutritionSummary;
+}
+
 const BUYER_STATUS_MOOD: Record<string, MoodColor> = {
 	healthy: 'green',
 	'use-soon': 'amber',
@@ -289,39 +463,118 @@ function fallbackBuyerInsights(profile: BuyerProfile, offers: StoreOffer[]): Buy
 	const restock = profile.inventory.filter((item) => item.status === 'restock');
 	const healthiest = profile.inventory.filter((item) => item.status === 'healthy');
 	const hasInventory = profile.inventory.length > 0;
+	const recentSpend = profile.purchases.slice(0, 3).reduce((sum, item) => sum + item.total, 0);
+	const budgetDelta = profile.budgetPerWeek - recentSpend;
+	const eventPlanner = profile.events;
+	const activeEvents = eventPlanner.length;
+	const upcomingNeeds = eventPlanner.flatMap((event) =>
+		event.shoppingList.filter((item) => item.status !== 'covered').map((item) => `${item.name} • ${item.quantity} ${item.unit}`),
+	);
+
+	const statusLabelMap: Record<string, string> = {
+		healthy: 'Healthy',
+		'use-soon': 'Use Soon',
+		restock: 'Restock Soon',
+		overflow: 'Overflow',
+	};
+
+	const deriveCategoryLabel = (item: BuyerProfile['inventory'][number]): string => {
+		const category = item.category?.toLowerCase() ?? '';
+		const name = item.name.toLowerCase();
+		if (category.includes('produce') || category.includes('vegetable') || category.includes('greens') || name.includes('kale') || name.includes('spinach')) {
+			return 'Fresh produce';
+		}
+		if (category.includes('protein') || name.includes('tofu') || name.includes('egg') || name.includes('chicken') || name.includes('bean') || name.includes('lentil')) {
+			return 'Protein source';
+		}
+		if (category.includes('grain') || name.includes('rice') || name.includes('pasta') || name.includes('oat')) {
+			return 'Whole-grain staple';
+		}
+		if (category.includes('snack') || category.includes('treat')) {
+			return 'Snack';
+		}
+		if (category.includes('dairy') || name.includes('milk') || name.includes('yogurt')) {
+			return 'Dairy & calcium';
+		}
+		return 'Pantry staple';
+	};
+
+	const deriveSuggestion = (item: BuyerProfile['inventory'][number]): string | undefined => {
+		if (item.status === 'use-soon') {
+			return `Use within ${item.daysLeft ?? 2} days — fold into quick meals or snacks.`;
+		}
+		if (item.status === 'restock') {
+			return 'Add to this week’s shopping list to avoid low inventory.';
+		}
+		if (item.status === 'overflow') {
+			return 'Plan recipes to work through extras before storage fills up.';
+		}
+		return undefined;
+	};
+
+	const stapleNames = healthiest.slice(0, 2).map((item) => item.name).join(', ') || 'pantry staples';
+	const urgentNames = expiring.slice(0, 2).map((item) => item.name).join(', ');
+
+	const heroSummary = hasInventory
+		? urgentNames
+			? `Good staples (${stapleNames}) but fresh items (${urgentNames}) need immediate attention to prevent waste.`
+			: `Pantry staples (${stapleNames}) look solid—keep rotating them into this week’s meals.`
+		: 'Pantry is empty — add a few essentials to unlock smarter plans and budget tracking.';
+
+	const overviewCommentary = hasInventory
+		? `Recent spend $${recentSpend.toFixed(2)} of $${profile.budgetPerWeek} budget ${budgetDelta >= 0 ? 'leaves room for targeted produce pickups.' : 'is running hot—lean on pantry items first.'} ${activeEvents > 0 ? `Event readiness tracks ${activeEvents} upcoming plan${activeEvents > 1 ? 's' : ''}.` : 'No events on deck—use the window for batch cooking.'}`
+		: 'Add what’s in your fridge or pantry so we can balance budgets, meal plans, and offers for you.';
 
 	const wasteMood = hasInventory ? (expiring.length ? BUYER_STATUS_MOOD['use-soon'] : BUYER_STATUS_MOOD.healthy) : 'amber';
+	const budgetMood: MoodColor = budgetDelta >= 0 ? 'green' : 'amber';
+	const eventMood: MoodColor = activeEvents === 0 ? 'green' : upcomingNeeds.length > 0 ? 'amber' : 'green';
 
-	const summary: HighlightedInsight[] = [
-		formatInsight(
-			'PANTRY LOAD',
-			wasteMood,
-			`${hasInventory ? profile.inventory.length : '0'} tracked items • ${expiring.length} use-soon • ${restock.length} to restock.`,
-		),
-		formatInsight(
-			'BUDGET TREND',
-			hasInventory ? 'green' : 'amber',
-			`Recent spend $${profile.purchases.slice(0, 3).reduce((sum, item) => sum + item.total, 0).toFixed(2)} • Weekly budget $${profile.budgetPerWeek}.`,
-		),
+	const kpiCallouts: BuyerKpiCallout[] = [
+		{
+			metric: 'pantryHealth',
+			headline: KPI_HEADLINES.pantryHealth,
+			mood: hasInventory ? 'green' : 'amber',
+			detail: hasInventory
+				? `${profile.inventory.length} tracked items • ${expiring.length} use-soon • ${restock.length} to restock.`
+				: 'No pantry items logged yet — add a few staples to kickstart personalized coaching.',
+		},
+		{
+			metric: 'wasteRisk',
+			headline: KPI_HEADLINES.wasteRisk,
+			mood: wasteMood,
+			detail:
+				expiring.length > 0
+					? `High waste risk: ${expiring.slice(0, 2).map((item) => `${item.name} (${item.expirationDate ?? 'soon'})`).join(', ')} need to be used first.`
+					: 'Waste risk is low — keep rotating older items to maintain the score.',
+		},
+		{
+			metric: 'budgetHealth',
+			headline: KPI_HEADLINES.budgetHealth,
+			mood: budgetMood,
+			detail:
+				budgetDelta >= 0
+					? `Tracking under budget with $${Math.abs(budgetDelta).toFixed(2)} to spare for strategic produce or proteins.`
+					: `Spending exceeded budget by $${Math.abs(budgetDelta).toFixed(2)} — prioritize pantry-first meals this week.`,
+		},
+		{
+			metric: 'eventReadiness',
+			headline: KPI_HEADLINES.eventReadiness,
+			mood: eventMood,
+			detail:
+				activeEvents > 0
+					? `${activeEvents} upcoming plan${activeEvents > 1 ? 's' : ''}; finalize menus and cover ${upcomingNeeds.slice(0, 3).join(', ') || 'remaining staples'} for full readiness.`
+					: 'No events scheduled — use the flexibility to experiment with new meal prep routines.',
+		},
 	];
 
-	if (expiring.length > 0) {
-		summary.push(formatInsight('WASTE WATCH', 'red', `Use ${expiring[0].name} within ${expiring[0].daysLeft ?? 2} days to prevent spoilage.`));
-	} else if (!hasInventory) {
-		summary.push(formatInsight('KICKSTART', 'green', 'No pantry items yet — perfect time to grab high-fiber staples from local bundles.'));
-	}
-
-	const recommendedActions: HighlightedInsight[] = [
+	const recommendations: HighlightedInsight[] = [
 		expiring.length
-			? formatInsight('WASTE RISK', 'red', `Prep ${expiring[0].name} with ${expiring[1]?.name ?? 'staples'} before ${expiring[0].expirationDate ?? 'the weekend'}.`)
-			: formatInsight(
-				'INVENTORY SCAN',
-				hasInventory ? 'green' : 'amber',
-				hasInventory ? 'Quick shelf check keeps your waste score low.' : 'Add starter veggies and proteins to unlock smart coaching.',
-			),
+			? formatInsight('USE EGGS & KALE', 'red', `Plan meals around ${expiring.map((item) => item.name).join(' and ')} in the next ${expiring[0]?.daysLeft ?? 2} days.`)
+			: formatInsight('INVENTORY CHECK', hasInventory ? 'green' : 'amber', hasInventory ? 'Quick shelf scan to confirm quantities keeps waste in check.' : 'Log staples like grains, legumes, and greens to unlock smarter tips.'),
 		restock.length
-			? formatInsight('RESTOCK PLAN', BUYER_STATUS_MOOD.restock, `Add ${restock.map((item) => item.name).join(', ')} to your next basket to avoid gaps.`)
-			: formatInsight('HEALTHY BALANCE', BUYER_STATUS_MOOD.healthy, `${healthiest[0]?.name ?? 'Leafy greens'} are well stocked — keep rotating them into meals.`),
+			? formatInsight('RESTOCK GREENS', BUYER_STATUS_MOOD.restock, `Add ${restock.map((item) => item.name).join(', ')} to the next trip to keep meals balanced.`)
+			: formatInsight('KEEP ROTATING', BUYER_STATUS_MOOD.healthy, `${healthiest[0]?.name ?? 'Leafy greens'} are in great shape — feature them in upcoming meals.`),
+		formatInsight('PLAN POTLUCK', 'amber', activeEvents > 0 ? 'Finalize potluck dishes and align shopping list with pantry items to minimize spend.' : 'No events scheduled — consider planning a gathering using pantry staples.'),
 	];
 
 	const offerHighlights = offers.slice(0, 3).map((offer) =>
@@ -336,6 +589,74 @@ function fallbackBuyerInsights(profile: BuyerProfile, offers: StoreOffer[]): Buy
 			formatInsight('LEAN PROTEIN', 'green', 'Pick up tofu or rotisserie chicken from Fresh Grocer bundles for quick dinners.'),
 		);
 	}
+
+	const inventoryAnnotations: InventoryAnnotation[] = profile.inventory.map((item) => ({
+		name: item.name,
+		mood: BUYER_STATUS_MOOD[item.status] ?? 'amber',
+		statusLabel: statusLabelMap[item.status] ?? item.status.replace('-', ' '),
+		categoryLabel: deriveCategoryLabel(item),
+		suggestion: deriveSuggestion(item),
+	}));
+
+	const categorySet = new Set(profile.inventory.map((item) => item.category?.toLowerCase() ?? ''));
+	const nameSet = new Set(profile.inventory.map((item) => item.name.toLowerCase()));
+	const missingNutrients: string[] = [];
+	if (![...categorySet].some((cat) => cat.includes('produce') || cat.includes('vegetable') || cat.includes('greens') || cat.includes('fruit'))) {
+		missingNutrients.push('Fresh produce for vitamins A & C');
+	}
+	const hasProtein = [...nameSet].some((name) => name.includes('egg') || name.includes('tofu') || name.includes('chickpea') || name.includes('bean') || name.includes('lentil')) ||
+		[...categorySet].some((cat) => cat.includes('protein'));
+	if (!hasProtein) {
+		missingNutrients.push('Lean protein options to balance meals');
+	}
+	const hasWholeGrain = [...nameSet].some((name) => name.includes('rice') || name.includes('oat') || name.includes('quinoa')) ||
+		[...categorySet].some((cat) => cat.includes('grain'));
+	if (!hasWholeGrain) {
+		missingNutrients.push('Whole grains for sustained energy');
+	}
+
+	const nutritionRecommendations: NutritionRecommendation[] = [];
+	if (missingNutrients.some((note) => note.includes('Fresh produce'))) {
+		nutritionRecommendations.push({
+			item: 'Leafy greens mix',
+			reason: 'Boosts vitamins, fiber, and freshness alongside pantry grains.',
+			storeSuggestion: offers[0]?.storeName ? `Check ${offers[0].storeName} produce bundles.` : undefined,
+			mood: 'green',
+		});
+	}
+	if (missingNutrients.some((note) => note.includes('Lean protein'))) {
+		nutritionRecommendations.push({
+			item: 'Plant-based protein',
+			reason: 'Adds versatile protein to balance legumes and grains.',
+			storeSuggestion: offers[1]?.storeName ? `See ${offers[1].storeName} markdowns.` : undefined,
+			mood: 'amber',
+		});
+	}
+	if (missingNutrients.some((note) => note.includes('Whole grains'))) {
+		nutritionRecommendations.push({
+			item: 'Whole-grain wraps',
+			reason: 'Supports quick lunches and balances macros.',
+			storeSuggestion: offers[0]?.storeName ? `Browse bakery aisle at ${offers[0].storeName}.` : undefined,
+			mood: 'green',
+		});
+	}
+	if (nutritionRecommendations.length === 0 && offers[0]) {
+		nutritionRecommendations.push({
+			item: offers[0].items[0] ?? 'Seasonal produce bundle',
+			reason: 'Adds freshness to current pantry-heavy meals.',
+			storeSuggestion: `Leverage ${offers[0].storeName} offer before ${offers[0].validThrough}.`,
+			mood: 'green',
+		});
+	}
+
+	const pantryNutrition: PantryNutritionSummary = {
+		macroBalance: hasInventory
+			? `Pantry leans on ${stapleNames.toLowerCase()} with plant proteins — pair with fresh greens to round out meals.`
+			: 'Macro balance unavailable until pantry items are logged.',
+		missingNutrients,
+		recommendedAdditions: nutritionRecommendations,
+		overallMood: missingNutrients.length > 1 ? 'amber' : 'green',
+	};
 
 	const mealPlan: MealPlanSuggestion[] = [
 		{
@@ -396,14 +717,18 @@ function fallbackBuyerInsights(profile: BuyerProfile, offers: StoreOffer[]): Buy
 		dealHighlights.push(formatInsight('COMMUNITY CO-OP', 'green', 'Join the Wakefern CSA pickup for seasonal produce under $25/week.'));
 	}
 
-	if (recommendedActions.length < 3) {
-		recommendedActions.push(formatInsight('MEAL PREP', 'green', 'Batch roast veggies on Sunday to simplify mid-week dinners.'));
+	if (recommendations.length < 3) {
+		recommendations.push(formatInsight('MEAL PREP', 'green', 'Batch roast veggies on Sunday to simplify mid-week dinners.'));
 	}
 
 	return {
-		summary,
-		recommendedActions,
+		heroSummary,
+		overviewCommentary,
+		kpiCallouts,
+		recommendations,
+		inventoryAnnotations,
 		inventorySuggestions,
+		pantryNutrition,
 		mealPlan,
 		dietSchedule,
 		dealHighlights,
@@ -414,30 +739,47 @@ export async function generateBuyerAiInsights(profile: BuyerProfile, offers: Sto
 	const fallback = fallbackBuyerInsights(profile, offers);
 	const context = JSON.stringify({ profile, offers }, null, 2);
 
-	const narrativePrompt = `You are GEMINI, a culinary strategist. Using the provided buyer profile and nearby offers, generate JSON with colour-coded insights.
+	const narrativePrompt = `You are GEMINI, a culinary strategist. Using the buyer profile and nearby offers, craft structured coaching with mood colours.
 
 Return ONLY JSON shaped exactly like:
 {
-  "summary": [ { "keyword": "...", "mood": "green|amber|red", "detail": "..." } ],
-  "recommendedActions": [ { "keyword": "...", "mood": "...", "detail": "..." } ],
-  "inventorySuggestions": [ { "keyword": "...", "mood": "...", "detail": "..." } ],
-  "dealHighlights": [ { "keyword": "...", "mood": "...", "detail": "..." } ]
+  "heroSummary": "...",
+  "overviewCommentary": "...",
+  "kpiCallouts": [ { "metric": "pantryHealth|wasteRisk|budgetHealth|eventReadiness", "headline": "...", "mood": "green|amber|red", "detail": "..." } ],
+  "recommendations": [ { "keyword": "...", "mood": "green|amber|red", "detail": "..." } ],
+  "inventoryAnnotations": [ { "name": "...", "mood": "green|amber|red", "statusLabel": "...", "categoryLabel": "...", "suggestion": "..." } ],
+  "inventorySuggestions": [ { "keyword": "...", "mood": "green|amber|red", "detail": "..." } ],
+  "pantryNutrition": {
+    "macroBalance": "...",
+    "missingNutrients": ["..."],
+    "recommendedAdditions": [ { "item": "...", "reason": "...", "storeSuggestion": "...", "mood": "green|amber|red" } ],
+    "overallMood": "green|amber|red"
+  },
+  "dealHighlights": [ { "keyword": "...", "mood": "green|amber|red", "detail": "..." } ]
 }
 
 Rules:
-- Use 2-3 summary items referencing pantry load, budget, and risk. Keep detail <= 28 words. Keywords must be ALL CAPS (1-3 words).
-- recommendedActions must contain 3 distinct steps grounded in inventory statuses or household goals. Use RED for urgent waste/restock risks, AMBER for watch items, GREEN for healthy wins.
-- inventorySuggestions must propose items or bundles from offers; if inventory array is empty, include at least 4 starter staples referencing local stores/bundles.
-- dealHighlights should spotlight the strongest offers or community programs; if none exist, suggest actionable alternatives.
-- Do not include markdown, prose, or arrays of strings—only the specified object arrays.
+- heroSummary: 1-2 sentences contrasting pantry strengths vs urgent risks. Stay under 260 characters.
+- overviewCommentary: budget delta + upcoming events + next focus in <= 2 sentences.
+- Provide 3-4 kpiCallouts covering each metric once; detail <= 26 words, headline in Title Case.
+- recommendations: 3 actionable coaching steps tied to inventory or goals. Use RED for urgent waste/restock, AMBER for watch, GREEN for healthy wins.
+- inventoryAnnotations: include at least 5 items when inventory exists; omit suggestion or set to "" if nothing to add. Use precise status and category labels.
+- inventorySuggestions: cite offers or starter staples; if no offers, recommend community resources.
+- pantryNutrition: tailor missing nutrients to actual inventory; recommendedAdditions can be empty when coverage is strong.
+- dealHighlights: spotlight strongest offers; if none, suggest alternative savings route. Keep every detail grounded in context.
+- Never output null; use empty arrays when needed. Do not include markdown or commentary outside JSON.
 
 Context JSON:
 ${context}`;
 
 	type BuyerNarrativePayload = {
-		summary?: unknown;
-		recommendedActions?: unknown;
+		heroSummary?: unknown;
+		overviewCommentary?: unknown;
+		kpiCallouts?: unknown;
+		recommendations?: unknown;
+		inventoryAnnotations?: unknown;
 		inventorySuggestions?: unknown;
+		pantryNutrition?: unknown;
 		dealHighlights?: unknown;
 	};
 
@@ -479,18 +821,26 @@ ${context}`;
 
 	const mealData = await callAiJson<BuyerMealPayload>(mealPrompt);
 
-	const summary = narrative ? parseInsightArray(narrative.summary) : [];
-	const recommendedActions = narrative ? parseInsightArray(narrative.recommendedActions) : [];
+	const heroSummary = narrative && typeof narrative.heroSummary === 'string' ? narrative.heroSummary.trim() : '';
+	const overviewCommentary = narrative && typeof narrative.overviewCommentary === 'string' ? narrative.overviewCommentary.trim() : '';
+	const kpiCallouts = narrative ? parseKpiCallouts(narrative.kpiCallouts) : [];
+	const recommendations = narrative ? parseInsightArray(narrative.recommendations) : [];
+	const inventoryAnnotations = narrative ? parseInventoryAnnotations(narrative.inventoryAnnotations) : [];
 	const inventorySuggestions = narrative ? parseInsightArray(narrative.inventorySuggestions) : [];
+	const parsedPantryNutrition = narrative ? parsePantryNutrition(narrative.pantryNutrition) : null;
 	const dealHighlights = narrative ? parseInsightArray(narrative.dealHighlights) : [];
 
 	const mealPlan = mealData ? parseMealPlan(mealData.mealPlan) : [];
 	const dietSchedule = mealData ? parseDietSchedule(mealData.dietSchedule) : [];
 
 	return {
-		summary: summary.length ? summary : fallback.summary,
-		recommendedActions: recommendedActions.length ? recommendedActions : fallback.recommendedActions,
+		heroSummary: heroSummary || fallback.heroSummary,
+		overviewCommentary: overviewCommentary || fallback.overviewCommentary,
+		kpiCallouts: kpiCallouts.length ? kpiCallouts : fallback.kpiCallouts,
+		recommendations: recommendations.length ? recommendations : fallback.recommendations,
+		inventoryAnnotations: inventoryAnnotations.length ? inventoryAnnotations : fallback.inventoryAnnotations,
 		inventorySuggestions: inventorySuggestions.length ? inventorySuggestions : fallback.inventorySuggestions,
+		pantryNutrition: parsedPantryNutrition ?? fallback.pantryNutrition,
 		dealHighlights: dealHighlights.length ? dealHighlights : fallback.dealHighlights,
 		mealPlan: mealPlan.length ? mealPlan : fallback.mealPlan,
 		dietSchedule: dietSchedule.length ? dietSchedule : fallback.dietSchedule,

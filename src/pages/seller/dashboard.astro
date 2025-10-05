@@ -1,5 +1,6 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import Icon from "../../components/ui/Icon.astro";
 import metrics from "../../server/data/seller-metrics.json";
 import products from "../../server/data/products.json";
 
@@ -23,6 +24,44 @@ const seasonalBundles = [
 ];
 
 const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + alert.confidence, 0) / metrics.demandAlerts.length;
+
+// Lightweight seller AI summary (placeholder until server-side AI wired)
+const topFocus = (() => {
+  const counts: Record<string, number> = {};
+  for (const a of metrics.demandAlerts) {
+    for (const it of a.focusItems) counts[it] = (counts[it] ?? 0) + 1 * (a.confidence || 1);
+  }
+  const sorted = Object.entries(counts).sort(([,a],[,b]) => b - a).slice(0,3).map(([k]) => k);
+  return sorted.length ? sorted.join(', ') : 'no clear item concentration';
+})();
+
+const sellerAiSummary = `Demand clustering highlights ${topFocus}. Consider targeted bundles and localized markdowns in high-rise zips.`;
+
+// Demand heatmap from demandAlerts -> focus item frequency * confidence
+const demandItemScores = (() => {
+  const freq: Record<string, number> = {};
+  for (const a of metrics.demandAlerts) {
+    for (const it of a.focusItems) freq[it] = (freq[it] ?? 0) + (a.confidence ?? 0.5);
+  }
+  const entries = Object.entries(freq).sort(([,a],[,b]) => b - a);
+  // pad to 16 entries
+  while (entries.length < 16) entries.push([`SKU-${entries.length+1}`, Math.max(0.1, 0.5 - entries.length * 0.02)]);
+  return entries.slice(0,16).map(([k,v]) => ({ id: k, score: Math.round(Math.min(100, v * 40 + 20)), label: k }));
+})();
+
+// AI conclusion based on inventory risk table
+const inventoryRiskCounts = metrics.inventoryRisks.reduce((acc: Record<string, number>, r) => {
+  const key = (r.risk || 'unknown').toLowerCase().split(' ')[0];
+  acc[key] = (acc[key] ?? 0) + 1;
+  return acc;
+}, {});
+
+const sellerAiConclusion = (() => {
+  if ((inventoryRiskCounts['critical'] ?? 0) > 0) return `URGENT: ${inventoryRiskCounts['critical']} critical SKU(s) need markdowns or promotions to avoid spoilage.`;
+  if ((inventoryRiskCounts['high'] ?? 0) > 1) return `High priority: multiple high-risk SKUs — consider targeted bundles and 1-2 day markdowns.`;
+  if ((inventoryRiskCounts['risk'] ?? 0) > 0) return `Monitor: some risk SKU(s) flagged — schedule replenishment and quick promos.`;
+  return 'Inventory overall looks healthy — continue current cadence.';
+})();
 ---
 
 <MainLayout title="Seller Dashboard">
@@ -32,57 +71,183 @@ const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + ale
   </section>
 
   <section class="kpi-grid">
-    <article>
-      <h2>Revenue (7d)</h2>
-      <p class="kpi-value">${metrics.kpis.revenueWeek.toLocaleString()}</p>
-      <p class="kpi-sub">{metrics.kpis.revenueChangePct}% vs. last week</p>
+    {/** helper functions for color */}
+    <script type="text/javascript">
+      // unused at runtime; kept for clarity
+    </script>
+    <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.revenueChangePct))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
+      <h2><b>Revenue (7d)</b></h2>
+      <div class="kpi-tile__circle-bg">
+        <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*Math.max(0,Math.min(100,metrics.kpis.revenueChangePct))/100},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(Math.max(0,Math.min(100,metrics.kpis.revenueChangePct)) * 1.26)} /></svg>
+        <span class="kpi-tile__value"><b>${metrics.kpis.revenueWeek.toLocaleString()}</b></span>
+      </div>
+      <p class="kpi-sub"><u>{metrics.kpis.revenueChangePct}% vs. last week</u></p>
     </article>
-    <article>
-      <h2>Sell-through rate</h2>
-      <p class="kpi-value">{Math.round(metrics.kpis.sellThroughRate * 100)}<span class="unit">%</span></p>
+  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.sellThroughRate*100))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
+      <h2><b>Sell-through rate</b></h2>
+      <div class="kpi-tile__circle-bg">
+        <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*metrics.kpis.sellThroughRate},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(metrics.kpis.sellThroughRate * 100 * 1.26)} /></svg>
+        <span class="kpi-tile__value"><b>{Math.round(metrics.kpis.sellThroughRate * 100)}<span class="unit">%</span></b></span>
+      </div>
       <p class="kpi-sub">High velocity across seasonal SKUs</p>
     </article>
-    <article>
-      <h2>Spoilage avoided</h2>
-      <p class="kpi-value">{metrics.kpis.spoilageAvoidedLb}<span class="unit">lb</span></p>
+  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.spoilageAvoidedLb))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
+      <h2><b>Spoilage avoided</b></h2>
+      <div class="kpi-tile__circle-bg">
+        <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*Math.min(1,metrics.kpis.spoilageAvoidedLb/100)},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(Math.min(100,metrics.kpis.spoilageAvoidedLb) * 1.26)} /></svg>
+        <span class="kpi-tile__value"><b>{metrics.kpis.spoilageAvoidedLb}<span class="unit">lb</span></b></span>
+      </div>
       <p class="kpi-sub">Thanks to proactive alerts + donations</p>
     </article>
-    <article>
-      <h2>Promo lift</h2>
-      <p class="kpi-value">{metrics.kpis.promotionLiftPct}<span class="unit">%</span></p>
+  <article class="kpi-tile" style={`background: hsla(${Math.round(Math.max(0,Math.min(100,metrics.kpis.promotionLiftPct))*1.2)},78%,48%,0.14); border:1px solid rgba(255,255,255,0.04)`}>
+      <h2><b>Promo lift</b></h2>
+      <div class="kpi-tile__circle-bg">
+        <svg viewBox="0 0 48 48" class="kpi-tile__gauge"><circle cx="24" cy="24" r="20" fill="none" stroke="#eee" stroke-width="6" stroke-opacity="0.25" /><circle cx="24" cy="24" r="20" fill="none" stroke={`hsl(${120*metrics.kpis.promotionLiftPct/100},80%,45%)`} stroke-width="6" stroke-dasharray="126" stroke-dashoffset={126 - Math.round(metrics.kpis.promotionLiftPct * 1.26)} /></svg>
+        <span class="kpi-tile__value"><b>{metrics.kpis.promotionLiftPct}<span class="unit">%</span></b></span>
+      </div>
       <p class="kpi-sub">Last 3 featured campaigns</p>
     </article>
+  </section>
+  <!-- MARKET DEMOGRAPHICS moved up for seller priority -->
+  <section class="demographics" aria-labelledby="demographics-heading">
+    <header>
+      <h2 id="demographics-heading">Marketplace Demographics</h2>
+      <p>Top zips, household mix, and spending bands near your store.</p>
+    </header>
+    <div class="demographics-top">
+      <div class="demographics-summary">
+        <div><b>Top Zip</b><div class="muted">08854</div></div>
+        <div><b>Household size (median)</b><div class="muted">3</div></div>
+        <div><b>Avg. basket</b><div class="muted">$42.10</div></div>
+        <div><b>Fav category</b><div class="muted">Produce</div></div>
+      </div>
+      <div class="demographics-charts">
+        <div class="chart small">
+          <header><Icon name="box" /> <b>Demand by item</b></header>
+          <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
+            {(() => {
+              const data: number[] = (metrics as any).demandByItem || [24, 42, 31, 12, 54];
+              const max = Math.max(...data);
+              return data.map((d: number, idx: number) => {
+                const w = 28;
+                const x = idx * (w + 8) + 6;
+                const h = Math.round((d / max) * 44);
+                const y = 52 - h;
+                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.26)`;
+                return <rect x={x} y={y} width={w} height={h} rx="3" style={`fill:${color};`} />;
+              });
+            })()}
+          </svg>
+        </div>
+        <div class="chart small">
+          <header><Icon name="calendar" /> <b>Spending bands</b></header>
+          <svg viewBox="0 0 200 60" class="mini-bar" preserveAspectRatio="none">
+            {(() => {
+              const data: number[] = (metrics as any).spendBands || [12, 28, 20, 8, 32];
+              const max = Math.max(...data);
+              return data.map((d: number, idx: number) => {
+                const w = 30;
+                const x = idx * (w + 6) + 6;
+                const h = Math.round((d / max) * 44);
+                const y = 52 - h;
+                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.2)`;
+                return <rect x={x} y={y} width={w} height={h} rx="3" style={`fill:${color};`} />;
+              });
+            })()}
+          </svg>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="alerts">
     <header>
-      <h2>Demand radar</h2>
+      <h2>Demand Radar</h2>
       <p>Upcoming spikes powered by buyer meal plans and events.</p>
     </header>
+    <!-- Seller AI analysis (prominent) -->
+    <div class="seller-ai">
+      <h3>AI Analysis</h3>
+      <p class="ai-summary">{sellerAiSummary}</p>
+      <p class="ai-note">Avg confidence <b>{Math.round(forecastConfidence * 100)}%</b>. Key items: <u>{topFocus}</u></p>
+      <p class="ai-conclusion">{sellerAiConclusion}</p>
+    </div>
+
+    <!-- Demand heatmap for household items -->
+    <div class="demand-heatmap">
+      {(() => {
+        const size = 4;
+        const cells: any[] = [];
+        let idx = 0;
+        for (let r = 0; r < size; r++) {
+          const row: any[] = [];
+          for (let c = 0; c < size; c++) {
+            const item = demandItemScores[idx];
+            row.push({ id: item.id, score: item.score, label: item.label });
+            idx++;
+          }
+          cells.push(row);
+        }
+        return cells.map((row: any[]) => (
+          <div class="heatmap-row">
+            {row.map((cell: any) => (
+              <div class="heatmap-cell" style={`background:${`hsla(${Math.round(cell.score*1.2)},78%,48%,0.22)`}`}> 
+                <div class="heatmap-cell__label">{cell.label}</div>
+                <div class="heatmap-cell__score">{cell.score}%</div>
+              </div>
+            ))}
+          </div>
+        ));
+      })()}
+    </div>
     <div class="alert-grid">
       {metrics.demandAlerts.map((alert) => (
-        <article>
-          <h3>{alert.zip}</h3>
-          <p class="window">{alert.timeWindow}</p>
+  <article style={`background: hsla(${Math.round(Math.max(0,Math.min(100,alert.confidence*100))*1.2)},78%,48%,0.14);`}>
+          <h3><b>{alert.zip}</b></h3>
+          <p class="window"><u>{alert.timeWindow}</u></p>
           <ul>
             {alert.focusItems.map((item) => (
-              <li>{item}</li>
+              <li><b>{item}</b></li>
             ))}
           </ul>
-          <p class="confidence">Confidence: {(alert.confidence * 100).toFixed(0)}%</p>
-          <p class="action">{alert.recommendedAction}</p>
+          <p class="confidence"><b>Confidence:</b> <u>{(alert.confidence * 100).toFixed(0)}%</u></p>
+          <p class="action"><u>{alert.recommendedAction}</u></p>
         </article>
       ))}
     </div>
     <footer class="alerts-summary">
-      <span>Avg confidence {Math.round(forecastConfidence * 100)}%</span>
+      <span><b>Avg confidence {Math.round(forecastConfidence * 100)}%</b></span>
       <button class="cta">Export demand CSV</button>
     </footer>
   </section>
 
+  <script is:inline>
+    (() => {
+      function makeClickable(selector) {
+        document.querySelectorAll(selector).forEach((el) => {
+          el.addEventListener('click', () => {
+            const label = el.querySelector('h3, h2, b')?.textContent || el.getAttribute('aria-label') || 'Item';
+            const toast = document.createElement('div');
+            toast.className = 'quick-toast';
+            toast.textContent = `Selected: ${label}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 1800);
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        makeClickable('.kpi-tile');
+        makeClickable('.alert-grid article');
+        makeClickable('.promotion-grid article');
+        makeClickable('.product-grid article');
+      });
+    })();
+  </script>
+
   <section class="inventory">
     <header>
-      <h2>Inventory health check</h2>
+      <h2>Inventory Health Check</h2>
       <p>Target markdowns before items expire. Align replenishment to demand.</p>
     </header>
     <table>
@@ -97,49 +262,52 @@ const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + ale
         </tr>
       </thead>
       <tbody>
-        {metrics.inventoryRisks.map((risk) => (
-          <tr class={`risk-${risk.risk.toLowerCase().split(" ")[0]}`}>
-            <td data-label="SKU">{risk.sku}</td>
-            <td data-label="Item">{risk.name}</td>
-            <td data-label="Stock">{risk.currentStock}</td>
-            <td data-label="Days on hand">{risk.daysOnHand}</td>
-            <td data-label="Risk">{risk.risk}</td>
-            <td data-label="Suggested action">{risk.suggestion}</td>
-          </tr>
-        ))}
+        {metrics.inventoryRisks.map((risk) => {
+          const urgent = risk.risk.toLowerCase().includes('high') || risk.risk.toLowerCase().includes('critical');
+          return (
+            <tr class={`risk-${risk.risk.toLowerCase().split(" ")[0]}`} style={`background: hsla(${Math.round((urgent?18:72)*1.2)},78%,48%,${urgent?0.08:0.04}); border-radius:10px;`}>
+              <td data-label="SKU"><b>{risk.sku}</b></td>
+              <td data-label="Item"><b>{risk.name}</b></td>
+              <td data-label="Stock">{risk.currentStock}</td>
+              <td data-label="Days on hand">{risk.daysOnHand}</td>
+              <td data-label="Risk"><u>{risk.risk}</u></td>
+              <td data-label="Suggested action"><u>{risk.suggestion}</u></td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </section>
 
   <section class="promotions">
     <header>
-      <h2>Promotion builder</h2>
+      <h2>Promotion Builder</h2>
       <p>Bundle seasonal heroes into campaigns shoppers will love.</p>
     </header>
     <div class="promotion-grid">
       {metrics.promotionIdeas.map((idea) => (
-        <article>
-          <h3>{idea.name}</h3>
+  <article style={`background: hsla(${Math.round(Math.max(0,Math.min(100,parseFloat(idea.discount)))*1.2)},78%,48%,0.14);`}>
+          <h3><b>{idea.name}</b></h3>
           <ul>
             {idea.components.map((component) => (
-              <li>{component}</li>
+              <li><b>{component}</b></li>
             ))}
           </ul>
-          <p class="discount">{idea.discount}</p>
-          <p class="audience">Audience: {idea.audience}</p>
+          <p class="discount"><u>{idea.discount}</u></p>
+          <p class="audience">Audience: <u>{idea.audience}</u></p>
           <button class="cta secondary">Launch draft</button>
         </article>
       ))}
       {seasonalBundles.map((bundle) => (
-        <article class="derived">
-          <h3>{bundle.name}</h3>
+  <article class="derived" style="background: hsla(40,78%,48%,0.12);">
+          <h3><b>{bundle.name}</b></h3>
           <ul>
             {bundle.components.map((component) => (
-              <li>{component}</li>
+              <li><b>{component}</b></li>
             ))}
           </ul>
-          <p class="lift">{bundle.expectedLift}</p>
-          <p class="margin">Projected margin {bundle.marginImpact}</p>
+          <p class="lift"><u>{bundle.expectedLift}</u></p>
+          <p class="margin">Projected margin <u>{bundle.marginImpact}</u></p>
           <button class="cta">Add to calendar</button>
         </article>
       ))}
@@ -148,28 +316,28 @@ const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + ale
 
   <section class="catalog">
     <header>
-      <h2>Catalog spotlight</h2>
+      <h2>Catalog Spotlight</h2>
       <p>Top freshness-score products ready for marketplace placement.</p>
     </header>
     <div class="product-grid">
       {topProducts.map((product) => (
-        <article>
+  <article style={`background: hsla(${Math.round(Math.max(0,Math.min(100,product.freshnessScore))*1.2)},78%,48%,0.14);`}>
           <header>
-            <h3>{product.name}</h3>
-            <span class="category">{product.category}</span>
+            <h3><b>{product.name}</b></h3>
+            <span class="category"><u>{product.category}</u></span>
           </header>
           <dl>
             <div>
               <dt>Price</dt>
-              <dd>${product.price.toFixed(2)} / {product.unit}</dd>
+              <dd><b>${product.price.toFixed(2)} / {product.unit}</b></dd>
             </div>
             <div>
               <dt>Freshness score</dt>
-              <dd>{product.freshnessScore}</dd>
+              <dd><b>{product.freshnessScore}</b></dd>
             </div>
             <div>
               <dt>Shelf life</dt>
-              <dd>{product.shelfLifeDays} days</dd>
+              <dd><u>{product.shelfLifeDays} days</u></dd>
             </div>
           </dl>
           <footer>
@@ -180,254 +348,73 @@ const forecastConfidence = metrics.demandAlerts.reduce((acc, alert) => acc + ale
       ))}
     </div>
   </section>
+
+  <section class="demographics" aria-labelledby="demographics-heading">
+    <header>
+      <h2 id="demographics-heading">Marketplace Demographics & Statistics</h2>
+    </header>
+    <div class="demographics-tile-grid">
+      <article class="demographics-tile"><b>Top Buyer Zip:</b> <u>08854</u></article>
+      <article class="demographics-tile"><b>Most Common Age:</b> <u>28</u></article>
+      <article class="demographics-tile"><b>Avg. Basket:</b> <u>$42.10</u></article>
+      <article class="demographics-tile"><b>Most Popular SKU:</b> <u>Eggs</u></article>
+    </div>
+  </section>
 </MainLayout>
 
 <style>
-  :global(main) {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xl);
-  }
+  /* Seller dashboard styling aligned with buyer theme for harmony */
+  :root { --tile-radius:14px; --tile-padding:18px; --gap:18px; --gauge-size:120px; --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+  body { font-family: var(--font-sans); }
+  :global(main) { display:flex; flex-direction:column; gap:var(--gap); padding-block:40px 64px; }
 
-  .page-intro {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
+  .kpi-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:var(--gap); }
+  .kpi-tile { padding:var(--tile-padding); border-radius:var(--tile-radius); display:flex; gap:16px; align-items:center; background: rgba(255,255,255,0.02); box-shadow:0 10px 28px rgba(0,0,0,0.32); border:1px solid rgba(255,255,255,0.04); cursor:pointer; transition:transform 220ms, box-shadow 220ms; }
+  .kpi-tile__circle-bg { width:var(--gauge-size); height:var(--gauge-size); position:relative; border-radius:999px; display:flex; align-items:center; justify-content:center; }
+  .kpi-tile__gauge { width:100%; height:100%; transform:rotate(-90deg); position:absolute; left:0; top:0; }
+  .kpi-tile__value { font-weight:900; color:#fff; font-size:1.05rem; }
 
-  .page-intro h1 {
-    font-size: clamp(2rem, 5vw, 2.6rem);
-    margin: 0;
-  }
+  .alert-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:var(--gap); }
+  .alert-grid article { padding:16px; border-radius:12px; box-shadow:0 8px 18px rgba(0,0,0,0.28); color:#fff; }
 
-  .lead {
-    color: var(--color-text-muted);
-    max-width: 60ch;
-  }
+  table { width:100%; border-collapse:separate; border-spacing:0; }
+  thead th { padding:10px 12px; color:var(--color-text-muted); }
+  tbody td { padding:12px; background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+  tbody tr { border-radius:12px; margin-bottom:10px; display:table; width:100%; table-layout:fixed; }
 
-  .kpi-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
+  .promotion-grid, .product-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:var(--gap); }
+  .promotion-grid article, .product-grid article { padding:14px; border-radius:12px; box-shadow:0 8px 18px rgba(0,0,0,0.28); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:#fff; }
 
-  .kpi-grid article {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
-  }
+  .demographics-tile-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:12px; }
+  .demographics-tile { padding:12px; border-radius:12px; background: rgba(255,255,255,0.02); color:#fff; font-weight:700; text-align:center; }
 
-  .kpi-value {
-    font-size: 2.1rem;
-    font-weight: 700;
-    margin: var(--space-xs) 0;
-  }
+  @media (max-width:720px) { :root { --gauge-size:76px; } }
 
-  .unit {
-    font-size: 1rem;
-    color: var(--color-text-muted);
-    margin-left: var(--space-2xs);
-  }
+  /* Seller AI block */
+  .seller-ai { padding:16px; border-radius:14px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); margin:14px 0; border:1px solid rgba(255,255,255,0.04); }
+  .seller-ai h3 { margin:0 0 6px 0; font-size:1rem; }
+  .ai-summary { font-size:1.125rem; font-weight:900; color:#fff; margin:6px 0; letter-spacing:0.01em; }
+  .ai-note { color:var(--color-text-muted); margin-bottom:6px; }
+  .ai-conclusion { font-size:1rem; font-weight:800; color: #ffb86b; }
 
-  .kpi-sub {
-    color: var(--color-text-muted);
-    margin: 0;
-  }
+  /* Seller demand heatmap */
+  .demand-heatmap { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .demand-heatmap .heatmap-row { display:flex; gap:8px; }
+  .demand-heatmap .heatmap-cell { flex:1; border-radius:10px; min-height:84px; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff; font-weight:800; border:1px solid rgba(255,255,255,0.04); cursor:pointer; transition: transform 200ms, box-shadow 200ms; }
+  .demand-heatmap .heatmap-cell:hover { transform: translateY(-6px); box-shadow: 0 22px 44px rgba(0,0,0,0.45); }
+  .demand-heatmap .heatmap-cell__label { font-size:13px; opacity:0.95; }
+  .demand-heatmap .heatmap-cell__score { font-size:15px; margin-top:8px; }
 
-  .alerts header,
-  .inventory header,
-  .promotions header,
-  .catalog header {
-    margin-bottom: var(--space-sm);
-  }
+  /* small chart and icon styles */
+  .demographics-charts .chart.small header { display:flex; gap:8px; align-items:center; color:#fff; margin-bottom:8px; }
+  .demographics-charts .mini-bar { height:60px; }
 
-  .alert-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
+  .kpi-tile:hover, .promotion-grid article:hover, .product-grid article:hover, .alert-grid article:hover { transform: translateY(-6px); box-shadow: 0 26px 48px rgba(2,6,23,0.55); }
 
-  .alert-grid article {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
+  /* Buttons and CTA styles */
+  .cta { padding:10px 14px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); color:#fff; font-weight:800; cursor:pointer; }
+  .cta.secondary { background: transparent; border:1px dashed rgba(255,255,255,0.06); }
 
-  .alert-grid h3 {
-    margin: 0;
-  }
-
-  .window {
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
-  }
-
-  .confidence {
-    font-weight: 600;
-  }
-
-  .action {
-    font-size: 0.95rem;
-  }
-
-  .alerts-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--space-sm);
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--surface-raised);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-  }
-
-  thead {
-    background: var(--surface-subtle);
-  }
-
-  th,
-  td {
-    text-align: left;
-    padding: var(--space-sm);
-    font-size: 0.95rem;
-  }
-
-  tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.6);
-  }
-
-  .risk-high {
-    border-left: 4px solid var(--color-warning-text);
-  }
-
-  .risk-moderate {
-    border-left: 4px solid var(--color-accent);
-  }
-
-  .promotion-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
-
-  .promotion-grid article {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .promotion-grid .derived {
-    border: 1px dashed var(--color-primary-soft);
-  }
-
-  .discount,
-  .audience,
-  .lift,
-  .margin {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-  }
-
-  .product-grid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-
-  .product-grid article {
-    border-radius: var(--radius-lg);
-    background: var(--surface-raised);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .product-grid h3 {
-    margin: 0;
-  }
-
-  dl {
-    display: grid;
-    gap: var(--space-xs);
-  }
-
-  dl div {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-  }
-
-  dt {
-    color: var(--color-text-muted);
-  }
-
-  .cta,
-  .secondary {
-    border: none;
-    padding: var(--space-2xs) var(--space-sm);
-    border-radius: var(--radius-pill);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .cta {
-    background: var(--color-accent);
-    color: var(--surface-base);
-  }
-
-  .secondary {
-    background: var(--surface-subtle);
-    color: var(--color-text-muted);
-  }
-
-  @media (max-width: 640px) {
-    table,
-    thead,
-    tbody,
-    th,
-    td,
-    tr {
-      display: block;
-    }
-
-    thead {
-      display: none;
-    }
-
-    tbody tr {
-      margin-bottom: var(--space-sm);
-      padding: var(--space-sm);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      background: var(--surface-raised);
-    }
-
-    td {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    td::before {
-      content: attr(data-label);
-      font-weight: 600;
-      color: var(--color-text-muted);
-      margin-right: var(--space-md);
-    }
-  }
+  /* Quick toast */
+  .quick-toast { position:fixed; right:18px; bottom:18px; background:rgba(0,0,0,0.8); color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 8px 18px rgba(0,0,0,0.5); z-index:9999; }
 </style>

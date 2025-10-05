@@ -24,10 +24,49 @@ export type InventoryStatus = 'healthy' | 'use-soon' | 'restock' | 'overflow';
 
 export type MoodColor = 'green' | 'amber' | 'red';
 
+export type BuyerKpiMetric = 'wasteRisk' | 'pantryHealth' | 'budgetHealth' | 'eventReadiness';
+
 export interface HighlightedInsight {
 	keyword: string;
 	mood: MoodColor;
 	detail: string;
+}
+
+export interface BuyerKpiCallout {
+	metric: BuyerKpiMetric;
+	headline: string;
+	mood: MoodColor;
+	detail: string;
+}
+
+export interface InventoryAnnotation {
+	name: string;
+	mood: MoodColor;
+	statusLabel: string;
+	categoryLabel: string;
+	suggestion?: string;
+}
+
+export interface NutritionRecommendation {
+	item: string;
+	reason: string;
+	storeSuggestion?: string;
+	mood?: MoodColor;
+}
+
+export interface PantryNutritionSummary {
+	macroBalance: string;
+	missingNutrients: string[];
+	recommendedAdditions: NutritionRecommendation[];
+	overallMood: MoodColor;
+	// Optional detailed grid of nutrient scores (0-100)
+	nutritionGrid?: Array<{
+		id: string;
+		label: string;
+		score: number;
+		mood: MoodColor;
+		detail?: string;
+	}>;
 }
 
 export interface BuyerInventoryItem {
@@ -127,9 +166,13 @@ export interface DietScheduleSuggestion {
 }
 
 export interface BuyerAiInsights {
-	summary: HighlightedInsight[];
-	recommendedActions: HighlightedInsight[];
+	heroSummary: string;
+	overviewCommentary: string;
+	kpiCallouts: BuyerKpiCallout[];
+	recommendations: HighlightedInsight[];
+	inventoryAnnotations: InventoryAnnotation[];
 	inventorySuggestions: HighlightedInsight[];
+	pantryNutrition: PantryNutritionSummary;
 	mealPlan: MealPlanSuggestion[];
 	dietSchedule: DietScheduleSuggestion[];
 	dealHighlights: HighlightedInsight[];
