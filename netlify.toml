@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "dist/functions"
+
+[context.production.environment]
+  # Example: set environment variables in Netlify UI or here for production builds
+  NODE_ENV = "production"
+
+[dev]
+  command = "npm run dev"
+  port = 3000
