@@ -170,13 +170,63 @@ async function callAiJson<T>(prompt: string): Promise<T | null> {
 			return JSON.parse(payload) as T;
 		} catch (firstErr) {
 			// Attempt to sanitize common JSON issues (trailing commas, comments, unquoted keys)
-			try {
-				const sanitized = sanitizeJsonString(payload);
-				return JSON.parse(sanitized) as T;
-			} catch (secondErr) {
-				console.warn('[ai] Unable to parse Gemini JSON payload after sanitization', secondErr, '\nOriginal payload:', payload, '\nSanitized payload:', sanitizeJsonString(payload));
-				return null;
-			}
+				try {
+					const sanitized = sanitizeJsonString(payload);
+					try {
+						return JSON.parse(sanitized) as T;
+					} catch (sanErr) {
+						// Local repair helper to avoid cross-file scope issues
+						const repairLocal = (s: string) => {
+							let candidate = s;
+							try {
+								JSON.parse(candidate);
+								return candidate;
+							} catch (e) {
+								// Trim after last closing bracket/brace
+								const last = Math.max(candidate.lastIndexOf('}'), candidate.lastIndexOf(']'));
+								if (last !== -1 && last < candidate.length - 1) {
+									candidate = candidate.slice(0, last + 1);
+								}
+								// Balance quotes/brackets/braces
+								let braceDelta = 0;
+								let bracketDelta = 0;
+								let inString = false;
+								let escaped = false;
+								for (let i = 0; i < candidate.length; i++) {
+									const ch = candidate[i];
+									if (ch === '"' && !escaped) inString = !inString;
+									if (inString && ch === '\\' && !escaped) {
+										escaped = true;
+										continue;
+									}
+									if (!inString) {
+										if (ch === '{') braceDelta++;
+										else if (ch === '}') braceDelta--;
+										else if (ch === '[') bracketDelta++;
+										else if (ch === ']') bracketDelta--;
+									}
+									escaped = false;
+								}
+								if (inString) candidate += '"';
+								if (bracketDelta > 0) candidate += ']'.repeat(bracketDelta);
+								if (braceDelta > 0) candidate += '}'.repeat(braceDelta);
+								candidate = sanitizeJsonString(candidate);
+								return candidate;
+							}
+						};
+
+						try {
+							const repaired = repairLocal(sanitized);
+							return JSON.parse(repaired) as T;
+						} catch (repairErr) {
+							console.warn('[ai] Unable to parse Gemini JSON payload after sanitization and repair', repairErr, '\nOriginal payload:', payload, '\nSanitized payload:', sanitized);
+							return null;
+						}
+					}
+				} catch (secondErr) {
+					console.warn('[ai] Unable to parse Gemini JSON payload after sanitization', secondErr, '\nOriginal payload:', payload, '\nSanitized payload:', sanitizeJsonString(payload));
+					return null;
+				}
 		}
 	} catch (error) {
 		console.warn('[ai] Unexpected error extracting/parsing Gemini JSON payload', error, '\nRaw response:', raw);
@@ -220,6 +270,14 @@ function sanitizeJsonString(input: string): string {
 
 	return out;
 }
+
+/**
+ * Best-effort JSON repair for truncated or unbalanced JSON emitted by LLMs.
+ * - Attempts to close any unbalanced braces/brackets
+ * - Attempts to close dangling open quotes
+ * - Removes trailing partial tokens after the last balanced top-level object/array
+ */
+// repairJsonString removed; using a local repair helper in callAiJson instead
 
 function ensureMood(value: unknown, fallback: MoodColor = 'amber'): MoodColor {
 	if (typeof value !== 'string') {
