@@ -54,4 +54,23 @@
       "audience": "07030 + 07302 weekend planners"
     }
   ]
+  ,
+  "otherStores": [
+    {
+      "storeId": "seller-002",
+      "storeName": "Green Market Central",
+      "zip": "07302",
+      "kpis": {
+        "revenueWeek": 14230,
+        "revenueChangePct": 6.8,
+        "sellThroughRate": 0.79,
+        "spoilageAvoidedLb": 48,
+        "promotionLiftPct": 12.5
+      },
+      "salesPerformance": [
+        { "weekOf": "2025-09-29", "revenue": 14230, "grossMargin": 0.27, "wasteAvoided": 48 },
+        { "weekOf": "2025-09-22", "revenue": 13500, "grossMargin": 0.25, "wasteAvoided": 42 }
+      ]
+    }
+  ]
 }

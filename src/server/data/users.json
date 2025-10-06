@@ -27,4 +27,26 @@
     "displayName": "Jake",
     "role": "buyer"
   }
+  ,
+  {
+    "id": "buyer-007",
+    "email": "ana.santos@example.com",
+    "password": "pass1234",
+    "displayName": "Ana Santos",
+    "role": "buyer"
+  },
+  {
+    "id": "buyer-008",
+    "email": "omar.khan@example.com",
+    "password": "omarpass",
+    "displayName": "Omar Khan",
+    "role": "buyer"
+  },
+  {
+    "id": "seller-002",
+    "email": "grocer2@example.com",
+    "password": "seller234",
+    "displayName": "Green Market Central",
+    "role": "seller"
+  }
 ]

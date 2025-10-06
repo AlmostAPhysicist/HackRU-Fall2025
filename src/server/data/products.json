@@ -59,4 +59,35 @@
     "sellerId": "seller-001",
     "shelfLifeDays": 120
   }
+  ,
+  {
+    "id": "sku-007",
+    "name": "Tofu (Firm)",
+    "category": "Protein",
+    "price": 2.99,
+    "unit": "pack",
+    "freshnessScore": 90,
+    "sellerId": "seller-002",
+    "shelfLifeDays": 14
+  },
+  {
+    "id": "sku-008",
+    "name": "Whole Wheat Bread",
+    "category": "Bakery",
+    "price": 3.5,
+    "unit": "loaf",
+    "freshnessScore": 72,
+    "sellerId": "seller-002",
+    "shelfLifeDays": 7
+  },
+  {
+    "id": "sku-009",
+    "name": "Broccoli Crowns",
+    "category": "Produce",
+    "price": 2.25,
+    "unit": "lb",
+    "freshnessScore": 80,
+    "sellerId": "seller-002",
+    "shelfLifeDays": 9
+  }
 ]

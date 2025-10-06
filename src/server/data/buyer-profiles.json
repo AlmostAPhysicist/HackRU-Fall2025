@@ -204,6 +204,32 @@
               "status": "add"
             }
           ]
+        },
+        {
+          "id": "event-b001-3",
+          "name": "Office Lunch",
+          "date": "2025-10-22",
+          "headcount": 6,
+          "menu": [
+            "Grain bowls",
+            "Roasted veggies",
+            "Seasonal fruit"
+          ],
+          "status": "needs-shopping",
+          "shoppingList": [
+            {
+              "name": "Quinoa",
+              "quantity": 1,
+              "unit": "kg",
+              "status": "add"
+            },
+            {
+              "name": "Mixed Greens",
+              "quantity": 2,
+              "unit": "bags",
+              "status": "add"
+            }
+          ]
         }
       ],
       "lastUpdated": "2025-10-03"
@@ -348,6 +374,32 @@
               "status": "add"
             }
           ]
+        },
+        {
+          "id": "event-maddy-2",
+          "name": "Community Potluck",
+          "date": "2025-11-02",
+          "headcount": 12,
+          "menu": [
+            "Salads",
+            "Roasted Veg",
+            "Dip Platter"
+          ],
+          "status": "draft",
+          "shoppingList": [
+            {
+              "name": "Pita",
+              "quantity": 6,
+              "unit": "packs",
+              "status": "add"
+            },
+            {
+              "name": "Hummus",
+              "quantity": 2,
+              "unit": "tubs",
+              "status": "add"
+            }
+          ]
         }
       ],
       "lastUpdated": "2025-10-04"
@@ -370,7 +422,296 @@
       },
       "inventory": [],
       "purchases": [],
-      "events": [],
+      "events": [
+        {
+          "id": "event-jake-1",
+          "name": "Solo Meal Prep",
+          "date": "2025-10-11",
+          "headcount": 1,
+          "menu": [
+            "Stir-fry",
+            "Rice bowls"
+          ],
+          "status": "on-track",
+          "shoppingList": [
+            {
+              "name": "Tofu",
+              "quantity": 2,
+              "unit": "packs",
+              "status": "add"
+            }
+          ]
+        }
+      ],
+      "lastUpdated": "2025-10-04"
+    },
+    {
+      "userId": "buyer-007",
+      "displayName": "Ana Santos",
+      "zip": "07030",
+      "householdSize": 4,
+      "dietaryPreferences": [
+        "family-friendly"
+      ],
+      "activityLevel": "active",
+      "budgetPerWeek": 160,
+      "calorieTarget": 2300,
+      "goals": {
+        "reduceWaste": 70,
+        "saveBudget": 60,
+        "eatHealthy": 80
+      },
+      "inventory": [
+        {
+          "id": "inv-ana-1",
+          "name": "Greek Yogurt",
+          "quantity": 3,
+          "unit": "tubs",
+          "category": "Dairy",
+          "status": "healthy",
+          "addedOn": "2025-09-20",
+          "expirationDate": "2025-10-15",
+          "daysLeft": 11,
+          "estimatedValue": 6
+        },
+        {
+          "id": "inv-ana-2",
+          "name": "Rotisserie Chicken",
+          "quantity": 1,
+          "unit": "whole",
+          "category": "Protein",
+          "status": "use-soon",
+          "addedOn": "2025-10-01",
+          "expirationDate": "2025-10-06",
+          "daysLeft": 2,
+          "estimatedValue": 12
+        }
+      ],
+      "purchases": [
+        {
+          "id": "purchase-ana-1",
+          "date": "2025-09-30",
+          "total": 78.2,
+          "store": "Fresh Grocer Hoboken",
+          "items": [
+            {
+              "name": "Rotisserie Chicken",
+              "quantity": 1,
+              "unit": "each",
+              "category": "Protein"
+            },
+            {
+              "name": "Greek Yogurt",
+              "quantity": 2,
+              "unit": "tubs",
+              "category": "Dairy"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "id": "event-ana-1",
+          "name": "Birthday Dinner",
+          "date": "2025-10-20",
+          "headcount": 8,
+          "menu": [
+            "Roast chicken",
+            "Quinoa salad",
+            "Pumpkin pie"
+          ],
+          "status": "needs-shopping",
+          "shoppingList": [
+            {
+              "name": "Rotisserie Chicken",
+              "quantity": 1,
+              "unit": "each",
+              "status": "covered"
+            },
+            {
+              "name": "Pumpkin Pie Kit",
+              "quantity": 1,
+              "unit": "kit",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            },
+            {
+              "name": "Berries",
+              "quantity": 1,
+              "unit": "each",
+              "status": "add"
+            }
+          ]
+        },
+        {
+          "id": "event-ana-2",
+          "name": "Kids Lunchbox Prep",
+          "date": "2025-10-15",
+          "headcount": 4,
+          "menu": [
+            "Mini wraps",
+            "Fruit cups"
+          ],
+          "status": "on-track",
+          "shoppingList": [
+            {
+              "name": "Whole Wheat Wraps",
+              "quantity": 12,
+              "unit": "count",
+              "status": "add"
+            }
+          ]
+        }
+      ],
+      "lastUpdated": "2025-10-05"
+    },
+    {
+      "userId": "buyer-008",
+      "displayName": "Omar Khan",
+      "zip": "07302",
+      "householdSize": 1,
+      "dietaryPreferences": [
+        "high-protein"
+      ],
+      "activityLevel": "high",
+      "budgetPerWeek": 110,
+      "calorieTarget": 2700,
+      "goals": {
+        "reduceWaste": 50,
+        "saveBudget": 50,
+        "eatHealthy": 70
+      },
+      "inventory": [
+        {
+          "id": "inv-omar-1",
+          "name": "Chicken Breast",
+          "quantity": 6,
+          "unit": "pieces",
+          "category": "Protein",
+          "status": "healthy",
+          "addedOn": "2025-10-01",
+          "expirationDate": "2025-10-09",
+          "daysLeft": 5,
+          "estimatedValue": 15
+        },
+        {
+          "id": "inv-omar-2",
+          "name": "Broccoli",
+          "quantity": 1.2,
+          "unit": "kg",
+          "category": "Produce",
+          "status": "use-soon",
+          "addedOn": "2025-10-03",
+          "expirationDate": "2025-10-06",
+          "daysLeft": 1,
+          "estimatedValue": 2.8
+        },
+        {
+          "id": "inv-omar-3",
+          "name": "Protein Powder",
+          "quantity": 1,
+          "unit": "tub",
+          "category": "Pantry",
+          "status": "healthy",
+          "addedOn": "2025-09-05",
+          "expirationDate": "2026-09-01",
+          "daysLeft": 330,
+          "estimatedValue": 29.99
+        }
+      ],
+      "purchases": [],
+      "events": [
+        {
+          "id": "event-omar-1",
+          "name": "Gym Meal Plan Prep",
+          "date": "2025-10-09",
+          "headcount": 1,
+          "menu": [
+            "Grilled chicken",
+            "Roasted broccoli"
+          ],
+          "status": "on-track",
+          "shoppingList": [
+            {
+              "name": "Chicken Breast",
+              "quantity": 6,
+              "unit": "pieces",
+              "status": "covered"
+            }
+          ]
+        }
+      ],
       "lastUpdated": "2025-10-04"
     }
   ]

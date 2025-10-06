@@ -39,4 +39,29 @@
     "expirationDate": "2026-06-15",
     "status": "stocked"
   }
+  ,
+  {
+    "item": "Kale",
+    "quantity": 0.6,
+    "unit": "kg",
+    "location": "Fridge",
+    "expirationDate": "2025-10-06",
+    "status": "use-soon"
+  },
+  {
+    "item": "Chickpeas",
+    "quantity": 6,
+    "unit": "cans",
+    "location": "Pantry",
+    "expirationDate": "2026-05-20",
+    "status": "stocked"
+  },
+  {
+    "item": "Whole Wheat Bread",
+    "quantity": 1,
+    "unit": "loaf",
+    "location": "Pantry",
+    "expirationDate": "2025-10-08",
+    "status": "use-soon"
+  }
 ]

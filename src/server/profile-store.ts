@@ -119,6 +119,23 @@ export async function appendBuyerInventoryItem(input: BuyerInventoryInput) {
 	return updatedProfile;
 }
 
+export async function removeBuyerInventoryItem(userId: string, inventoryId: string) {
+	const profile = await getBuyerProfile(userId);
+ 	if (!profile) {
+ 		throw new Error('Profile not found for buyer');
+ 	}
+
+ 	const updatedInventory = profile.inventory.filter((it) => it.id !== inventoryId);
+ 	const updatedProfile: BuyerProfile = {
+ 		...profile,
+ 		inventory: updatedInventory,
+ 		lastUpdated: new Date().toISOString().slice(0, 10),
+ 	};
+
+ 	await upsertBuyerProfile(updatedProfile);
+ 	return updatedProfile;
+}
+
 export async function ensureBuyerProfileForUser(userId: string, displayName: string): Promise<BuyerProfile> {
 	const existing = await getBuyerProfile(userId);
 	if (existing) {

@@ -904,6 +904,48 @@ ${context}`;
 
 	const mealData = await callAiJson<BuyerMealPayload>(mealPrompt);
 
+	// Parse mealPlan and dietSchedule early so they can be referenced below
+	const mealPlan = mealData ? parseMealPlan(mealData.mealPlan) : [];
+	const dietSchedule = mealData ? parseDietSchedule(mealData.dietSchedule) : [];
+
+	// Nutrition rating prompt: ask Gemini to score nutrition categories based on full pantry and upcoming events
+		const nutritionPrompt = `You are GEMINI, a nutrition analyst. Using the buyer profile (inventory) and upcoming event plans (shoppingList entries), rate the buyer's pantry across these categories: Protein, Produce & fiber, Healthy fats, Whole grains, Hydration & electrolytes.
+
+Return ONLY JSON shaped EXACTLY like:
+{
+	"summaryText": "...", // 1-2 sentence summary
+	"categories": [
+		{ "id": "protein", "label": "Protein balance", "score": 0-100, "detail": "..." },
+		{ "id": "produce", "label": "Produce & fiber", "score": 0-100, "detail": "..." },
+		{ "id": "healthy-fats", "label": "Healthy fats", "score": 0-100, "detail": "..." },
+		{ "id": "whole-grains", "label": "Whole grains", "score": 0-100, "detail": "..." },
+		{ "id": "hydration", "label": "Hydration & electrolytes", "score": 0-100, "detail": "..." }
+	],
+	"potentialGaps": ["Vitamin C", "Fiber"],
+	"recommendedAdditions": [ { "item": "Berries", "reason": "Good source of Vitamin C and fiber, great with yogurt.", "storeSuggestion": "Fresh Grocer Hoboken" } ]
+}
+
+Rules:
+- Use the full inventory array and any shoppingList items from upcoming events as context; do NOT assume access to any other data.
+- Scores should be integers 0-100 and reflect coverage in the pantry + near-term events.
+- summaryText should be a concise 1-2 sentence summary (<= 220 chars).
+- recommendedAdditions should include storeSuggestion when a local offer or store is present in context; otherwise suggest a generic local grocer.
+- Never output markdown or extra text outside the raw JSON object.
+
+Context JSON:
+${context}`;
+
+		type NutritionPayload = {
+				summaryText?: unknown;
+				categories?: unknown;
+				potentialGaps?: unknown;
+				recommendedAdditions?: unknown;
+		};
+
+		const nutritionData = await callAiJson<NutritionPayload>(nutritionPrompt);
+
+		const dealHighlights = narrative ? parseInsightArray(narrative.dealHighlights) : [];
+
 	const heroSummary = narrative && typeof narrative.heroSummary === 'string' ? narrative.heroSummary.trim() : '';
 	const overviewCommentary = narrative && typeof narrative.overviewCommentary === 'string' ? narrative.overviewCommentary.trim() : '';
 	const kpiCallouts = narrative ? parseKpiCallouts(narrative.kpiCallouts) : [];
@@ -911,10 +953,52 @@ ${context}`;
 	const inventoryAnnotations = narrative ? parseInventoryAnnotations(narrative.inventoryAnnotations) : [];
 	const inventorySuggestions = narrative ? parseInsightArray(narrative.inventorySuggestions) : [];
 	const parsedPantryNutrition = narrative ? parsePantryNutrition(narrative.pantryNutrition) : null;
-	const dealHighlights = narrative ? parseInsightArray(narrative.dealHighlights) : [];
+	// If the dedicated nutrition rating returned structured data, convert it into PantryNutritionSummary
+	if (nutritionData) {
+		try {
+			const sumText = typeof nutritionData.summaryText === 'string' ? nutritionData.summaryText.trim() : parsedPantryNutrition?.macroBalance ?? '';
+			const cats = Array.isArray(nutritionData.categories) ? nutritionData.categories : [];
+			const missing = Array.isArray(nutritionData.potentialGaps) ? nutritionData.potentialGaps.map((s: any) => String(s)) : parsedPantryNutrition?.missingNutrients ?? [];
+			const recs = Array.isArray(nutritionData.recommendedAdditions)
+				? (nutritionData.recommendedAdditions as any[]).map((r) => ({ item: String(r.item ?? ''), reason: String(r.reason ?? ''), storeSuggestion: r.storeSuggestion ? String(r.storeSuggestion) : undefined, mood: ensureMood((r.mood ?? 'green')) }))
+				: parsedPantryNutrition?.recommendedAdditions ?? [];
 
-	const mealPlan = mealData ? parseMealPlan(mealData.mealPlan) : [];
-	const dietSchedule = mealData ? parseDietSchedule(mealData.dietSchedule) : [];
+			const totalScore = cats.reduce((acc: number, c: any) => acc + (typeof c.score === 'number' ? c.score : 0), 0);
+			const avgScore = cats.length ? Math.round(totalScore / cats.length) : (parsedPantryNutrition?.nutritionGrid ? Math.round(parsedPantryNutrition.nutritionGrid.reduce((a,b)=>a+b.score,0)/parsedPantryNutrition.nutritionGrid.length) : 72);
+
+			const overallMoodStr = avgScore >= 75 ? 'green' : avgScore >= 45 ? 'amber' : 'red';
+
+			const nutritionGrid = cats.map((c: any) => {
+				const score = typeof c.score === 'number' ? c.score : 0;
+				const moodStr = score >= 75 ? 'green' : score >= 45 ? 'amber' : 'red';
+				return { id: String(c.id ?? ''), label: String(c.label ?? ''), score, mood: ensureMood(moodStr) };
+			});
+
+			const aiPantryNutrition: PantryNutritionSummary = {
+				macroBalance: sumText || (parsedPantryNutrition?.macroBalance ?? ''),
+				missingNutrients: missing as string[],
+				recommendedAdditions: recs as any,
+				overallMood: ensureMood(overallMoodStr),
+				nutritionGrid: nutritionGrid as any,
+			};
+
+			return {
+				heroSummary: heroSummary || fallback.heroSummary,
+				overviewCommentary: overviewCommentary || fallback.overviewCommentary,
+				kpiCallouts: kpiCallouts.length ? kpiCallouts : fallback.kpiCallouts,
+				recommendations: recommendations.length ? recommendations : fallback.recommendations,
+				inventoryAnnotations: inventoryAnnotations.length ? inventoryAnnotations : fallback.inventoryAnnotations,
+				inventorySuggestions: inventorySuggestions.length ? inventorySuggestions : fallback.inventorySuggestions,
+				pantryNutrition: aiPantryNutrition,
+				dealHighlights: dealHighlights.length ? dealHighlights : fallback.dealHighlights,
+				mealPlan: mealPlan.length ? mealPlan : fallback.mealPlan,
+				dietSchedule: dietSchedule.length ? dietSchedule : fallback.dietSchedule,
+			};
+		} catch (err) {
+			console.warn('[ai] failed to map nutritionData to PantryNutritionSummary', err);
+			// fall through to returning earlier mapping
+		}
+	}
 
 	return {
 		heroSummary: heroSummary || fallback.heroSummary,

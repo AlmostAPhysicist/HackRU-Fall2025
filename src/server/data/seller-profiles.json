@@ -124,5 +124,36 @@
       ],
       "lastUpdated": "2025-10-03"
     }
+    ,
+    {
+      "userId": "seller-002",
+      "displayName": "Green Market Central",
+      "store": {
+        "name": "Green Market Central",
+        "zip": "07302",
+        "region": "Hudson County",
+        "format": "market"
+      },
+      "goals": {
+        "reduceSpoilage": 62,
+        "increaseSellThrough": 72,
+        "growBundles": 55
+      },
+      "inventory": [
+        { "sku": "sku-007", "name": "Tofu (Firm)", "category": "Protein", "stock": 220, "parLevel": 150, "daysOnHand": 7, "status": "healthy", "spoilageRisk": 12, "margin": 0.22 },
+        { "sku": "sku-008", "name": "Whole Wheat Bread", "category": "Bakery", "stock": 40, "parLevel": 80, "daysOnHand": 3, "status": "risk", "spoilageRisk": 58, "margin": 0.18 },
+        { "sku": "sku-009", "name": "Broccoli Crowns", "category": "Produce", "stock": 65, "parLevel": 60, "daysOnHand": 6, "status": "healthy", "spoilageRisk": 24, "margin": 0.29 }
+      ],
+      "demandSignals": [
+        { "id": "signal-010", "zip": "07302", "startDate": "2025-10-10", "endDate": "2025-10-20", "expectedLift": 0.18, "focusItems": ["tofu (firm)", "whole wheat bread"] }
+      ],
+      "promotions": [
+        { "id": "promo-010", "name": "Tofu 2-Pack", "status": "active", "channel": "app", "discount": "20% off", "focusItems": ["tofu (firm)"] },
+        { "id": "promo-011", "name": "Bread Flash Sale", "status": "recommended", "channel": "in-store", "discount": "25% off", "focusItems": ["whole wheat bread"] }
+      ],
+      "nearbyBuyerInsights": [ { "zip": "07302", "upcomingEvents": 5, "topItems": ["tofu","whole wheat bread","broccoli"] } ],
+      "salesPerformance": [ { "weekOf": "2025-09-29", "revenue": 14230, "grossMargin": 0.27, "wasteAvoided": 48 }, { "weekOf": "2025-09-22", "revenue": 13500, "grossMargin": 0.25, "wasteAvoided": 42 } ],
+      "lastUpdated": "2025-10-03"
+    }
   ]
 }

@@ -273,15 +273,26 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
           (function(g){
             var label = g.getAttribute('data-label') || '';
             var value = g.getAttribute('data-value') || '';
+            function formatValue(v){
+              if (!v) return '';
+              // already formatted with $ or units
+              if (String(v).trim().charAt(0) === '$') return v;
+              if (String(v).toLowerCase().indexOf('units') !== -1) return v;
+              if (String(v).toLowerCase().indexOf('buyers') !== -1) return v;
+              // numeric-ish -> append units
+              var n = Number(String(v).replace(/[^0-9.-]+/g, ''));
+              if (!isNaN(n)) return n.toLocaleString() + ' units';
+              return v;
+            }
             g.addEventListener('mouseenter', function(){
-              var t = ensureTip(); t.textContent = label + ': ' + value; t.style.display = 'block';
+              var t = ensureTip(); t.textContent = label + ': ' + formatValue(value); t.style.display = 'block';
             });
             g.addEventListener('mousemove', function(ev){
               var t = ensureTip(); t.style.left = (ev.pageX) + 'px'; t.style.top = (ev.pageY - 12) + 'px';
             });
             g.addEventListener('mouseleave', function(){ if (tip) tip.style.display='none'; });
             g.addEventListener('click', function(){
-              var toast = document.createElement('div'); toast.className='quick-toast'; toast.textContent = 'Selected: ' + label + ' (' + value + ')'; document.body.appendChild(toast); setTimeout(function(){ toast.remove(); }, 1600);
+              var toast = document.createElement('div'); toast.className='quick-toast'; toast.textContent = 'Selected: ' + label + ' (' + formatValue(value) + ')'; document.body.appendChild(toast); setTimeout(function(){ toast.remove(); }, 1600);
             });
           })(groups[i]);
         }
@@ -312,7 +323,7 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
           return (
             <tr class={`risk-${risk.risk.toLowerCase().split(" ")[0]}`} style={`background: hsla(${Math.round((urgent?18:72)*1.2)},78%,48%,${urgent?0.08:0.04}); border-radius:10px;`}>
               <td data-label="SKU"><b>{risk.sku}</b></td>
-              <td data-label="Item"><b>{risk.name}</b></td>
+              <td data-label=""><b>{risk.name}</b></td>
               <td data-label="Stock">{risk.currentStock}</td>
               <td data-label="Days on hand">{risk.daysOnHand}</td>
               <td data-label="Risk"><u>{risk.risk}</u></td>
@@ -410,58 +421,88 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
         <div class="chart full">
           <header><Icon name="box" /> <b>Demand by item</b></header>
           <svg viewBox="0 0 100 60" class="mini-bar scaled" preserveAspectRatio="none">
-            {(() => {
-              const raw = (metrics as any).demandByItem || [24,42,31,12,54];
-              const labels = (metrics as any).demandByItemLabels || raw.map((_: any, i: number)=>`Item ${i+1}`);
-              const data = raw.slice(0, Math.min(raw.length, 6));
-              const n = data.length || 1;
-              const padding = 4; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
-              const w = Math.max(10, avail / n);
-              const max = Math.max(...data, 1);
-              return data.map((d: number, i: number) => {
-                const x = padding + i * (w + gap);
-                const h = (d / max) * 44;
-                const y = 56 - h;
-                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.34)`;
-                const label = labels[i] || `Item ${i+1}`;
-                return (
-                  <g class="bar-group" data-label={label} data-value={d}>
-                    <title>{label}: {d}</title>
-                    <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
-                    <text x={x + w/2} y={58} font-size="3.4" text-anchor="middle" fill="#cfeff6">{label}</text>
-                  </g>
-                );
-              });
-            })()}
-          </svg>
+              {(() => {
+                // Prefer explicit labels from metrics, else derive from recent demand alerts, else fallback to topProducts
+                const raw = (metrics as any).demandByItem || [24,42,31,12,54];
+                const alertItems = Array.from(new Set(((metrics as any).demandAlerts || []).flatMap((a: any) => a.focusItems || [])));
+                const fallbackLabels = alertItems.length ? alertItems : topProducts.map((p) => p.name);
+                const labels = (metrics as any).demandByItemLabels || fallbackLabels || raw.map((_: any, i: number)=>`Item ${i+1}`);
+                const data = raw.slice(0, Math.min(raw.length, 6));
+                const n = data.length || 1;
+                const padding = 14; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
+                const w = Math.max(10, avail / n);
+                const max = Math.max(...data, 1);
+
+                // Y-axis ticks (0, mid, max)
+                const ticks = [0, Math.ceil(max / 2), max];
+                const tickElements = ticks.map((t: number) => {
+                  const y = 56 - (t / max) * 44;
+                  return (<text x={2} y={y+2} font-size="3" text-anchor="start" fill="#9fdfe6">{t}</text>);
+                });
+
+                return [
+                  ...tickElements,
+                  ...data.map((d: number, i: number) => {
+                    const x = padding + i * (w + gap);
+                    const h = (d / max) * 44;
+                    const y = 56 - h;
+                    const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.34)`;
+                    const label = (labels[i] || `Item ${i+1}`).replace(/^\s+|\s+$/g, '');
+                    return (
+                      <g class="bar-group" data-label={label} data-value={`${d} units`}>
+                        <title>{label}: {d} units</title>
+                        <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
+                        <text x={x + w/2} y={58} font-size="1.0" text-anchor="middle" fill="#cfeff6">{label}</text>
+                      </g>
+                    );
+                  })
+                ];
+              })()}
+              {/* axis labels */}
+              <text x={2} y={8} font-size="3.4" fill="#9fdfe6" opacity="0.9">Demand (units)</text>
+              <!-- <text x={50} y={59} font-size="3.4" text-anchor="middle" fill="#cfeff6">Item</text> -->
+            </svg>
         </div>
         <div class="chart full">
           <header><Icon name="calendar" /> <b>Spending bands</b></header>
           <svg viewBox="0 0 100 60" class="mini-bar scaled" preserveAspectRatio="none">
-            {(() => {
-              const raw = (metrics as any).spendBands || [12,28,20,8,32];
-              const labels = (metrics as any).spendBandLabels || raw.map((_: any, i: number)=>`$${i*10}-$${i*10+9}`);
-              const data = raw.slice(0, Math.min(raw.length, 6));
-              const n = data.length || 1;
-              const padding = 4; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
-              const w = Math.max(10, avail / n);
-              const max = Math.max(...data, 1);
-              return data.map((d: number, i: number) => {
-                const x = padding + i * (w + gap);
-                const h = (d / max) * 44;
-                const y = 56 - h;
-                const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.28)`;
-                const label = labels[i] || `Band ${i+1}`;
-                return (
-                  <g class="bar-group" data-label={label} data-value={d}>
-                    <title>{label}: {d}</title>
-                    <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
-                    <text x={x + w/2} y={58} font-size="3.2" text-anchor="middle" fill="#cfeff6">{label}</text>
-                  </g>
-                );
-              });
-            })()}
-          </svg>
+              {(() => {
+                const raw = (metrics as any).spendBands || [12,28,20,8,32];
+                const labels = (metrics as any).spendBandLabels || raw.map((_: any, i: number)=>`$${i*10}-$${i*10+9}`);
+                const data = raw.slice(0, Math.min(raw.length, 6));
+                const n = data.length || 1;
+                const padding = 14; const gap = 2; const avail = 100 - padding*2 - gap*(n-1);
+                const w = Math.max(10, avail / n);
+                const max = Math.max(...data, 1);
+
+                // Y-axis ticks
+                const ticks = [0, Math.ceil(max/2), max];
+                const tickElements = ticks.map((t: number) => {
+                  const y = 56 - (t / max) * 44;
+                  return (<text x={2} y={y+2} font-size="3" text-anchor="start" fill="#9fdfe6">{t}</text>);
+                });
+
+                return [
+                  ...tickElements,
+                  ...data.map((d: number, i: number) => {
+                    const x = padding + i * (w + gap);
+                    const h = (d / max) * 44;
+                    const y = 56 - h;
+                    const color = `hsla(${Math.round((d / max) * 120)},78%,48%,0.28)`;
+                    const label = labels[i] || `Band ${i+1}`;
+                    return (
+                      <g class="bar-group" data-label={label} data-value={`$${d}`}>
+                        <title>{label}: ${d}</title>
+                        <rect class="bar" x={x} y={y} width={w} height={h} rx="1.6" style={`fill:${color};`} />
+                        <text x={x + w/2} y={58} font-size="1.0" text-anchor="middle" fill="#cfeff6">{label}</text>
+                      </g>
+                    );
+                  })
+                ];
+              })()}
+              <text x={2} y={8} font-size="3.4" fill="#9fdfe6" opacity="0.9">Buyers</text>
+              <!-- <text x={50} y={59} font-size="3.4" text-anchor="middle" fill="#cfeff6">Spending band</text> -->
+            </svg>
         </div>
       </div>
     </div>
@@ -523,6 +564,10 @@ const areaFillPath = areaPath + ` L 100,100 L 0,100 Z`;
   .mini-bar .bar-group:active .bar { transform: translateY(-2px) scale(0.99); }
   .mini-bar { overflow:visible; }
   .mini-tooltip { position:fixed; background:#0b111a; color:#fff; padding:8px 10px; border-radius:8px; font-size:0.85rem; box-shadow:0 8px 18px rgba(0,0,0,0.6); pointer-events:none; z-index:9999; transform:translate(-50%, -110%); }
+
+  /* SVG axis and tick styles for mini charts */
+  svg.mini-bar text { font-family: var(--font-sans); fill: #9fdfe6; font-weight:700; }
+  svg.mini-bar text[font-size] { opacity: 0.95; }
 
   /* Seller demand heatmap */
   .demand-heatmap { display:flex; flex-direction:column; gap:8px; margin-top:10px; }

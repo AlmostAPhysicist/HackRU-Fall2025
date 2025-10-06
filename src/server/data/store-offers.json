@@ -43,4 +43,27 @@
     "items": ["chickpeas", "lentils", "black beans"],
     "type": "markdown"
   }
+  ,
+  {
+    "id": "offer-005",
+    "zip": "07030",
+    "storeName": "Green Market Central",
+    "category": "Protein",
+    "description": "Tofu 2-pack deal",
+    "discountPercent": 20,
+    "validThrough": "2025-10-20",
+    "items": ["tofu (firm)"],
+    "type": "markdown"
+  },
+  {
+    "id": "offer-006",
+    "zip": "07302",
+    "storeName": "Green Market Central",
+    "category": "Bakery",
+    "description": "Whole wheat bread flash markdown",
+    "discountPercent": 25,
+    "validThrough": "2025-10-10",
+    "items": ["whole wheat bread"],
+    "type": "markdown"
+  }
 ]

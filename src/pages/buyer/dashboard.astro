@@ -423,6 +423,7 @@ const calendarTiles: CalendarTile[] = hasDashboard
                     <th scope="col">Status</th>
                     <th scope="col">Quantity</th>
                     <th scope="col">Expires</th>
+                    <th scope="col">Remove</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -435,6 +436,12 @@ const calendarTiles: CalendarTile[] = hasDashboard
                         <td class="status" data-label="Status"><u>{annotation?.statusLabel ?? item.status.replace("-", " ")}</u></td>
                         <td data-label="Quantity">{item.quantity} {item.unit}</td>
                         <td data-label="Expires">{item.expirationDate ?? "—"}</td>
+                        <td data-label="Remove">
+                          <label style="display:inline-flex;align-items:center;gap:8px;">
+                            <input type="checkbox" class="remove-checkbox" data-inv-id={item.id} aria-label={`Remove ${item.name}`} />
+                            <small>Empty</small>
+                          </label>
+                        </td>
                       </tr>
                     );
                   })}
@@ -477,6 +484,26 @@ const calendarTiles: CalendarTile[] = hasDashboard
           </div>
         </form>
       </section>
+
+        {pantryNutrition && pantryNutrition.recommendedAdditions && pantryNutrition.recommendedAdditions.length > 0 && (
+          <section class="nutrition-tiles" aria-labelledby="nutrition-tiles-heading">
+            <header>
+              <h3 id="nutrition-tiles-heading">AI nutrition suggestions</h3>
+              <p class="muted">Suggestions generated from your pantry and meal plans — tap to add to shopping list.</p>
+            </header>
+            <div class="nutrition-tiles-grid">
+              {pantryNutrition.recommendedAdditions.map((rec) => (
+                <article class="nutrition-tile" style={`background:${tileColorFromScore(moodToScore(rec.mood),0.12)};`}>
+                  <header><b>{rec.item}</b> <span class="muted">{rec.storeSuggestion ?? ''}</span></header>
+                  <p>{rec.reason}</p>
+                  <footer>
+                    <button class="cta small add-suggestion" data-item={rec.item}>Add to list</button>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
       {pantryNutrition && (
         <section class="nutrition" aria-labelledby="nutrition-heading">
@@ -775,6 +802,75 @@ const calendarTiles: CalendarTile[] = hasDashboard
             submit.disabled = false;
             delete submit.dataset.loading;
           }
+        }
+      });
+      // remove checkbox handler
+      document.addEventListener('change', async (ev) => {
+        const target = ev.target;
+        if (!(target instanceof HTMLInputElement)) return;
+        if (!target.classList.contains('remove-checkbox')) return;
+
+        const invId = target.getAttribute('data-inv-id') || '';
+        if (!invId) return;
+        const userId = document.querySelector('input[name="userId"]')?.getAttribute('value') || '';
+        if (!userId) return;
+
+        // Confirm quick action
+        if (!confirm('Empty this item from your pantry? This will remove it from inventory.')) {
+          target.checked = false;
+          return;
+        }
+
+        try {
+          const resp = await fetch('/api/buyer/inventory-remove', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ userId, inventoryId: invId }),
+          });
+          if (!resp.ok) throw new Error('Failed to remove item');
+          // refresh dashboard
+          window.location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Unable to remove item right now.');
+          target.checked = false;
+        }
+      });
+
+      // add suggestion quick handler
+      document.addEventListener('click', async (ev) => {
+        const target = ev.target;
+        if (!(target instanceof Element)) return;
+        const btn = target.closest('.add-suggestion');
+        if (!btn) return;
+        const item = btn.getAttribute('data-item') || '';
+        const userId = document.querySelector('input[name="userId"]')?.getAttribute('value') || '';
+        if (!userId) {
+          alert('Not signed in');
+          return;
+        }
+
+        // Optimistic toast
+        const t = document.createElement('div'); t.className = 'quick-toast'; t.textContent = `Adding to order: ${item}`; document.body.appendChild(t);
+
+        try {
+          const resp = await fetch('/api/buyer/ai-add-to-list', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ userId, item }),
+          });
+          if (!resp.ok) throw new Error('Add failed');
+
+          t.textContent = `Added to order: ${item}`;
+          setTimeout(() => {
+            t.remove();
+            // Refresh to pull updated dashboard and AI recompute
+            window.location.reload();
+          }, 800);
+        } catch (err) {
+          console.error(err);
+          t.textContent = 'Unable to add to order';
+          setTimeout(() => t.remove(), 1600);
         }
       });
     })();

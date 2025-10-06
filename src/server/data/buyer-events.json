@@ -34,4 +34,27 @@
       {"item": "sweet potatoes", "qty": 2, "unit": "lb", "status": "add"}
     ]
   }
+  ,
+  {
+    "id": "event-004",
+    "name": "Community Potluck",
+    "date": "2025-10-25",
+    "headcount": 30,
+    "menu": ["mixed salads","roast veg platters","mini pies"],
+    "shoppingList": [
+      {"item":"mixed greens","qty":10,"unit":"lb","status":"add"},
+      {"item":"sweet potatoes","qty":8,"unit":"lb","status":"add"}
+    ]
+  },
+  {
+    "id": "event-005",
+    "name": "Office Lunch",
+    "date": "2025-10-09",
+    "headcount": 12,
+    "menu": ["sandwiches","salads"],
+    "shoppingList": [
+      {"item":"whole wheat bread","qty":6,"unit":"loaf","status":"add"},
+      {"item":"turkey","qty":3,"unit":"lb","status":"add"}
+    ]
+  }
 ]
